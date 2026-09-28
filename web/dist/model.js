@@ -1,0 +1,95 @@
+export const MAX_FILE_SIZE = 30 * 1024 * 1024;
+export const QUESTION_COUNT = 20;
+const ALLOWED_EXTENSIONS = new Set(['md', 'docx', 'pdf', 'txt']);
+
+export function extension(name) {
+  return name.split('.').pop().toLowerCase();
+}
+
+export function fileSize(bytes) {
+  return bytes < 1024 * 1024
+    ? `${Math.max(1, Math.ceil(bytes / 1024))} КБ`
+    : `${(bytes / (1024 * 1024)).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} МБ`;
+}
+
+// This is a client-side preflight. PDF/DOCX parsing and scan detection belong to the analysis service.
+export async function validateFile(file) {
+  const format = extension(file.name);
+  if (!ALLOWED_EXTENSIONS.has(format)) return 'Поддерживаются только MD, DOCX, PDF и TXT.';
+  if (file.size === 0) return 'Файл пуст. Выберите документ с содержимым.';
+  if (file.size > MAX_FILE_SIZE) return 'Размер файла превышает 30 МБ.';
+  try {
+    if (format === 'txt' || format === 'md') {
+      if (!(await file.text()).trim()) return 'Документ не содержит текста.';
+    } else {
+      await file.slice(0, 8).arrayBuffer();
+    }
+  } catch (error) {
+    console.warn('Не удалось прочитать выбранный файл.', error);
+    return 'Файл недоступен для чтения. Выберите его заново.';
+  }
+  return null;
+}
+
+/** Preserve displayable fields of an incomplete response without inventing content. */
+export function normalizeResult(payload) {
+  if (!payload || typeof payload !== 'object') throw new Error('Сервис вернул некорректный результат. Повторите обработку.');
+  const summary = Array.isArray(payload.summary)
+    ? payload.summary.filter(text => typeof text === 'string' && text.trim())
+    : [];
+  const questions = [];
+  const seen = new Set();
+  let invalid = !Array.isArray(payload.questions);
+  for (const item of Array.isArray(payload.questions) ? payload.questions : []) {
+    if (!item || typeof item.id !== 'string' || !item.id.trim() || seen.has(item.id)
+      || typeof item.text !== 'string' || !item.text.trim()) {
+      invalid = true;
+      continue;
+    }
+    seen.add(item.id);
+    const question = { id: item.id, text: item.text };
+    for (const key of ['subsystem', 'understanding', 'importance']) {
+      question[key] = typeof item[key] === 'string' && item[key].trim() ? item[key] : '';
+      if (!question[key]) invalid = true;
+    }
+    questions.push(question);
+  }
+  if (!summary.length && !questions.length) throw new Error('В ответе нет доступных результатов. Повторите обработку.');
+  const complete = payload.status === 'complete' && !invalid
+    && questions.length === QUESTION_COUNT && summary.length >= 2 && summary.length <= 3;
+  return {
+    title: typeof payload.title === 'string' && payload.title.trim() ? payload.title : 'Анализ технического задания',
+    summary, questions, status: complete ? 'complete' : 'partial',
+    message: typeof payload.message === 'string' ? payload.message : '',
+  };
+}
+
+export function selectedText(questions, selected) {
+  return questions.filter(question => selected.has(question.id))
+    .map((question, index) => `${index + 1}. ${question.text}\nТекущее понимание: ${question.understanding || 'Не получено от сервиса.'}`)
+    .join('\n\n');
+}
+
+export function mergePartialResult(previous, incoming) {
+  if (!previous) return { ...incoming, status: 'partial' };
+  const questions = new Map(previous.questions.map(question => [question.id, question]));
+  for (const update of incoming.questions) {
+    const current = questions.get(update.id);
+    const merged = { ...update };
+    for (const field of ['subsystem', 'understanding', 'importance']) {
+      if (!merged[field] && current?.[field]) merged[field] = current[field];
+    }
+    questions.set(update.id, merged);
+  }
+  return {
+    ...incoming,
+    status: 'partial',
+    title: incoming.title === 'Анализ технического задания' ? previous.title : incoming.title,
+    summary: incoming.summary.length ? incoming.summary : previous.summary,
+    questions: [...questions.values()],
+  };
+}
+
+export function selectAll(questions) {
+  return new Set(questions.map(question => question.id));
+}

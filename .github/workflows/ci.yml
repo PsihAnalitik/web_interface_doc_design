@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      # No npm install: the frontend and its tests have no dependencies.
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Test frontend logic
+        run: npm test
+      - name: Package static frontend
+        uses: actions/upload-artifact@v7
+        with:
+          name: copilot-web-${{ github.sha }}
+          path: web/dist/
+          if-no-files-found: error
+          retention-days: 14

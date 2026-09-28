@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Анализ технического задания: понимание проекта, уточняющие вопросы и подготовка к обсуждению с заказчиком.">
+  <title>AI Solution Copilot — анализ технического задания</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232459bd'/%3E%3Cpath d='M9 23 23 9M11 9h12v12' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="./" aria-label="AI Solution Copilot — новая проверка"><span class="brand-mark" aria-hidden="true">↗</span><span>AI Solution <strong>Copilot</strong></span></a>
+      <span class="test-badge"><span aria-hidden="true">◌</span> Тестовый режим</span>
+    </div>
+  </header>
+  <main id="main" class="container">
+    <nav class="steps" aria-label="Этапы анализа">
+      <span id="step-input" aria-current="step"><b>01</b> Материалы</span><span class="step-line" aria-hidden="true"></span>
+      <span id="step-processing"><b>02</b> Анализ</span><span class="step-line" aria-hidden="true"></span>
+      <span id="step-results"><b>03</b> Вопросы</span>
+    </nav>
+
+    <section id="input-screen" aria-labelledby="input-title">
+      <div class="intro"><p class="eyebrow">АНАЛИЗ ТЕХНИЧЕСКОГО ЗАДАНИЯ</p><h1 id="input-title">Уточните требования<br>до начала разработки</h1><p class="lead">Добавьте описание задачи или документы, чтобы получить понимание проекта и 20 вопросов для обсуждения с заказчиком.</p></div>
+      <div class="notice"><span class="notice-icon" aria-hidden="true">!</span><div><strong>Перед загрузкой</strong><p>Сервис работает в тестовом режиме. Не загружайте конфиденциальные документы.</p></div></div>
+      <form id="analysis-form">
+        <label class="field-label" for="description">Что нужно разработать? <span>необязательно, если есть файлы</span></label>
+        <textarea id="description" name="description" rows="5" placeholder="Опишите задачу или вставьте текст технического задания…"></textarea>
+        <div class="dropzone" id="dropzone">
+          <span class="upload-mark" aria-hidden="true">↑</span><strong>Перетащите документы сюда</strong><span class="or">или</span>
+          <label class="file-picker button" for="files">Выбрать файлы<input id="files" name="files" type="file" accept=".md,.docx,.pdf,.txt" multiple></label>
+          <p class="file-hint">MD, DOCX, PDF, TXT · до 30 МБ на файл<br>PDF с текстовым слоем; сканы не поддерживаются</p>
+        </div>
+        <input id="replacement" type="file" accept=".md,.docx,.pdf,.txt" hidden aria-label="Выбрать замену документа">
+        <ul id="file-list" class="file-list" aria-label="Добавленные документы"></ul>
+        <div id="file-errors" class="error-panel" role="alert" hidden></div>
+        <p id="ready-status" class="muted small" role="status">Добавьте текст или хотя бы один документ.</p>
+        <div class="form-actions"><button id="analyze" class="button primary" type="submit" disabled>Проанализировать техническое задание <span aria-hidden="true">→</span></button><button id="example" class="button" type="button">Посмотреть пример</button></div>
+        <p id="service-note" class="small muted"></p>
+      </form>
+    </section>
+
+    <section id="analysis-screen" aria-labelledby="analysis-title" hidden>
+      <div class="result-heading"><div><p class="eyebrow">РЕЗУЛЬТАТ АНАЛИЗА</p><h1 id="analysis-title">Анализ технического задания</h1></div><span id="status-badge" class="status-badge" role="status"></span></div>
+      <div class="source-line"><span id="source-label"></span><span id="demo-label" class="demo-badge" hidden>Демонстрационный пример</span></div>
+      <div id="progress-panel" class="progress-panel" hidden><h2 id="progress-title">Формируем понимание проекта</h2><p id="progress-description">Изучаем материалы и готовим уточняющие вопросы.</p><progress id="analysis-progress" aria-label="Ход анализа"></progress></div>
+      <div id="analysis-error" class="error-panel" role="alert" hidden><strong id="error-title"></strong><p id="error-message"></p></div>
+      <div id="run-actions" class="run-actions"><button id="retry" class="button" hidden>Повторить обработку</button><button id="revise" class="button" hidden>Загрузить исправленное ТЗ</button><a class="button new-analysis" href="./" target="_blank" rel="noopener noreferrer">Проанализировать другое ТЗ <span aria-hidden="true">↗</span></a></div>
+      <section id="summary-section" class="summary" aria-labelledby="summary-title" hidden><h2 id="summary-title">Как мы поняли задачу</h2><div id="summary-text"></div></section>
+      <section id="questions-section" aria-labelledby="questions-title" hidden>
+        <div class="questions-heading"><h2 id="questions-title">Вопросы к заказчику <span id="question-count"></span></h2><p>Отметьте лучшие вопросы для обсуждения</p></div>
+        <div class="selection-bar">
+          <strong id="selection-count" role="status">Выбрано: 0</strong>
+          <div class="selection-actions"><button id="select-all" class="button quiet">Выделить все вопросы</button><button id="clear" class="button quiet" disabled>Снять выделение</button></div>
+          <button class="button primary copy" disabled>Копировать выбранные вопросы</button>
+          <a class="button new-analysis" href="./" target="_blank" rel="noopener noreferrer">Проанализировать другое ТЗ <span aria-hidden="true">↗</span></a>
+        </div>
+        <table class="questions-table"><caption class="sr-only">Уточняющие вопросы с текущим пониманием и обоснованием важности</caption><thead><tr><th scope="col"><span class="sr-only">Выбор вопроса</span></th><th scope="col">Вопрос / подсистема</th><th scope="col">Текущее понимание</th><th scope="col">Почему это важно</th></tr></thead><tbody id="questions"></tbody></table>
+        <div class="bottom-actions"><span class="muted small">Исправьте ТЗ в своём редакторе и загрузите новую версию.</span><button class="button primary copy" disabled>Копировать выбранные вопросы</button></div>
+      </section>
+      <div id="copy-message" class="copy-message" role="status"></div>
+      <div id="copy-fallback" class="manual-copy" hidden><label for="copy-text" class="field-label">Текст для ручного копирования</label><textarea id="copy-text" rows="8" readonly></textarea><p class="small muted">Выделите текст и нажмите Ctrl+C или ⌘C.</p></div>
+    </section>
+  </main>
+  <footer class="site-footer"><span>AI Solution Copilot</span><span>Загрузите → уточните → исправьте → повторите</span></footer>
+  <noscript><p class="container">Для работы интерфейса включите JavaScript в браузере.</p></noscript>
+</body>
+</html>
