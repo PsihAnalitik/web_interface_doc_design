@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MAX_FILE_SIZE, validateFile, normalizeResult, mergePartialResult, selectAll, selectedText } from '../dist/model.js';
 import { demoResult } from '../dist/demo.js';
-import { analyzeDocument } from '../dist/analysis.js';
 
 test('client preflight accepts supported files and the 30 MB boundary', async () => {
   for (const name of ['task.md', 'TASK.TXT', 'task.pdf', 'task.docx']) {
@@ -68,10 +67,6 @@ test('partial result selects and copies only its available questions', () => {
   assert.equal(selectedText(questions, selected).split('\n\n').length, 8);
 });
 
-test('unconnected service never substitutes demonstration results', async () => {
-  await assert.rejects(analyzeDocument({ text: 'Мой проект', files: [] }), /пока не подключён/);
-});
-
 test('partial final response retains previously streamed questions', () => {
   const previous = normalizeResult({ ...demoResult, status: 'partial', questions: demoResult.questions.slice(0, 8) });
   const final = normalizeResult({ status: 'partial', summary: ['Итоговое понимание'], questions: [] });
@@ -91,4 +86,37 @@ test('incomplete update does not erase already received question fields', () => 
   assert.equal(result.questions[0].understanding, previous.questions[0].understanding);
   assert.equal(result.questions[0].importance, previous.questions[0].importance);
   assert.deepEqual(result.summary, previous.summary);
+});
+
+const apiResult = {
+  kind: 'case-finder',
+  baseline: Array.from({ length: 20 }, (_, i) => `Базовый вопрос ${i + 1}?`),
+  enriched: Array.from({ length: 20 }, (_, i) => `Вопрос по кейсам ${i + 1}?`),
+};
+
+test('Case Finder complete result contains both groups without invented fields', () => {
+  const result = normalizeResult(apiResult);
+  assert.equal(result.status, 'complete');
+  assert.equal(result.questions.length, 40);
+  assert.equal(new Set(result.questions.map(item => item.id)).size, 40);
+  assert.deepEqual(result.summary, []);
+  assert.deepEqual(result.questions[0], {
+    id: 'baseline-1', group: 'baseline', text: 'Базовый вопрос 1?',
+    subsystem: '', understanding: '', importance: '',
+  });
+  assert.equal(result.questions[20].group, 'enriched');
+  const text = selectedText(result.questions, new Set(['enriched-1', 'baseline-1']));
+  assert.ok(text.startsWith('1. Базовый вопрос 1?\nНабор: По вашим материалам'));
+  assert.match(text, /2\. Вопрос по кейсам 1\?\nНабор: С учётом похожих кейсов/);
+  assert.match(text, /Не предоставляется текущим API/);
+  assert.equal(selectAll(result.questions).size, 40);
+});
+
+test('Case Finder partial and malformed arrays preserve only available questions', () => {
+  const result = normalizeResult({ ...apiResult, baseline: ['Первый?', null, ' ', 'Последний?'], enriched: null });
+  assert.equal(result.status, 'partial');
+  assert.deepEqual(result.questions.map(item => item.id), ['baseline-1', 'baseline-4']);
+  assert.match(result.message, /неполные/);
+  assert.equal(normalizeResult({ ...apiResult, enriched: [] }).status, 'partial');
+  assert.throws(() => normalizeResult({ kind: 'case-finder', baseline: [], enriched: [' '] }), /нет доступных/);
 });

@@ -25,8 +25,13 @@
       <span id="step-results"><b>03</b> Вопросы</span>
     </nav>
 
+    <form id="credentials-form" class="access-panel" aria-label="Доступ к серверу анализа">
+      <div><label class="field-label" for="api-username">Логин сервера</label><input id="api-username" name="username" autocomplete="username" required></div>
+      <div><label class="field-label" for="api-password">Пароль</label><input id="api-password" name="password" type="password" autocomplete="current-password" required></div>
+      <p class="small muted">Данные доступа выдаёт администратор сервера. Для демопримера они не нужны. Приложение не сохраняет пароль.</p>
+    </form>
     <section id="input-screen" aria-labelledby="input-title">
-      <div class="intro"><p class="eyebrow">АНАЛИЗ ТЕХНИЧЕСКОГО ЗАДАНИЯ</p><h1 id="input-title">Уточните требования<br>до начала разработки</h1><p class="lead">Добавьте описание задачи или документы, чтобы получить понимание проекта и 20 вопросов для обсуждения с заказчиком.</p></div>
+      <div class="intro"><p class="eyebrow">АНАЛИЗ ТЕХНИЧЕСКОГО ЗАДАНИЯ</p><h1 id="input-title">Уточните требования<br>до начала разработки</h1><p class="lead">Добавьте описание задачи или документы, чтобы получить два набора по 20 вопросов: по вашим материалам и с учётом похожих кейсов.</p></div>
       <div class="notice"><span class="notice-icon" aria-hidden="true">!</span><div><strong>Перед загрузкой</strong><p>Сервис работает в тестовом режиме. Не загружайте конфиденциальные документы.</p></div></div>
       <form id="analysis-form">
         <label class="field-label" for="description">Что нужно разработать? <span>необязательно, если есть файлы</span></label>
@@ -34,7 +39,7 @@
         <div class="dropzone" id="dropzone">
           <span class="upload-mark" aria-hidden="true">↑</span><strong>Перетащите документы сюда</strong><span class="or">или</span>
           <label class="file-picker button" for="files">Выбрать файлы<input id="files" name="files" type="file" accept=".md,.docx,.pdf,.txt" multiple></label>
-          <p class="file-hint">MD, DOCX, PDF, TXT · до 30 МБ на файл<br>PDF с текстовым слоем; сканы не поддерживаются</p>
+          <p class="file-hint">MD, DOCX, PDF, TXT · проверка в браузере до 30 МБ на файл<br>Лимиты сервера по умолчанию: 10 файлов, 20 МБ на файл, 100 МБ суммарно<br>PDF с текстовым слоем; сканы не поддерживаются</p>
         </div>
         <input id="replacement" type="file" accept=".md,.docx,.pdf,.txt" hidden aria-label="Выбрать замену документа">
         <ul id="file-list" class="file-list" aria-label="Добавленные документы"></ul>
@@ -48,10 +53,11 @@
     <section id="analysis-screen" aria-labelledby="analysis-title" hidden>
       <div class="result-heading"><div><p class="eyebrow">РЕЗУЛЬТАТ АНАЛИЗА</p><h1 id="analysis-title">Анализ технического задания</h1></div><span id="status-badge" class="status-badge" role="status"></span></div>
       <div class="source-line"><span id="source-label"></span><span id="demo-label" class="demo-badge" hidden>Демонстрационный пример</span></div>
-      <div id="progress-panel" class="progress-panel" hidden><h2 id="progress-title">Формируем понимание проекта</h2><p id="progress-description">Изучаем материалы и готовим уточняющие вопросы.</p><progress id="analysis-progress" aria-label="Ход анализа"></progress></div>
+      <div id="progress-panel" class="progress-panel" hidden><h2 id="progress-title">Готовим вопросы к проекту</h2><p id="progress-description">Изучаем материалы и готовим уточняющие вопросы.</p><progress id="analysis-progress" max="100" aria-label="Ход анализа"></progress></div>
       <div id="analysis-error" class="error-panel" role="alert" hidden><strong id="error-title"></strong><p id="error-message"></p></div>
       <div id="run-actions" class="run-actions"><button id="retry" class="button" hidden>Повторить обработку</button><button id="revise" class="button" hidden>Загрузить исправленное ТЗ</button><a class="button new-analysis" href="./" target="_blank" rel="noopener noreferrer">Проанализировать другое ТЗ <span aria-hidden="true">↗</span></a></div>
       <section id="summary-section" class="summary" aria-labelledby="summary-title" hidden><h2 id="summary-title">Как мы поняли задачу</h2><div id="summary-text"></div></section>
+      <p id="result-note" class="notice" hidden></p>
       <section id="questions-section" aria-labelledby="questions-title" hidden>
         <div class="questions-heading"><h2 id="questions-title">Вопросы к заказчику <span id="question-count"></span></h2><p>Отметьте лучшие вопросы для обсуждения</p></div>
         <div class="selection-bar">
@@ -60,7 +66,7 @@
           <button class="button primary copy" disabled>Копировать выбранные вопросы</button>
           <a class="button new-analysis" href="./" target="_blank" rel="noopener noreferrer">Проанализировать другое ТЗ <span aria-hidden="true">↗</span></a>
         </div>
-        <table class="questions-table"><caption class="sr-only">Уточняющие вопросы с текущим пониманием и обоснованием важности</caption><thead><tr><th scope="col"><span class="sr-only">Выбор вопроса</span></th><th scope="col">Вопрос / подсистема</th><th scope="col">Текущее понимание</th><th scope="col">Почему это важно</th></tr></thead><tbody id="questions"></tbody></table>
+        <table class="questions-table"><caption class="sr-only">Уточняющие вопросы и доступные пояснения</caption><thead><tr><th scope="col"><span class="sr-only">Выбор вопроса</span></th><th id="question-column" scope="col">Вопрос / подсистема</th><th scope="col">Текущее понимание</th><th scope="col">Почему это важно</th></tr></thead><tbody id="questions"></tbody></table>
         <div class="bottom-actions"><span class="muted small">Исправьте ТЗ в своём редакторе и загрузите новую версию.</span><button class="button primary copy" disabled>Копировать выбранные вопросы</button></div>
       </section>
       <div id="copy-message" class="copy-message" role="status"></div>

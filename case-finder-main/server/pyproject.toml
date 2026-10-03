@@ -1,0 +1,26 @@
+[project]
+name = "case-finder-server"
+version = "1.0.0"
+description = "Case Finder API and background worker"
+requires-python = ">=3.12"
+dependencies = [
+    # Keep the existing multipart OpenAPI contract (format: binary).
+    # FastAPI 0.129.1 changed this schema to contentMediaType.
+    "fastapi>=0.115,<0.129.1",
+    "uvicorn[standard]>=0.32,<1",
+    "openai>=1.40,<3",
+    "numpy>=1.26,<3",
+    "python-multipart>=0.0.12,<1",
+    "pypdf>=5,<7",
+    "python-docx>=1.1,<2",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27,<1",
+    "pytest>=8.3,<10",
+]
+
+[tool.uv]
+package = false
+required-version = ">=0.12.20,<0.13"

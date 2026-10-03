@@ -1,4 +1,4 @@
-import { extension, fileSize, validateFile, normalizeResult, mergePartialResult, selectedText, selectAll } from './model.js';
+import { extension, fileSize, validateFile, normalizeResult, mergePartialResult, selectedText, selectAll, QUESTION_GROUPS } from './model.js';
 import { analyzeDocument, serviceNotice } from './analysis.js';
 import { demoResult } from './demo.js';
 
@@ -6,7 +6,7 @@ const byId = id => document.getElementById(id);
 const copyButtons = [...document.querySelectorAll('.copy')];
 const state = {
   files: [], reading: false, running: false, result: null,
-  selected: new Set(), mode: null, replacementId: null, run: 0,
+  selected: new Set(), mode: null, replacementId: null, run: 0, processId: null,
 };
 
 function element(tag, text, className) {
@@ -24,6 +24,8 @@ function updateForm() {
   byId('files').disabled = locked;
   byId('replacement').disabled = locked;
   byId('description').disabled = locked;
+  byId('api-username').disabled = locked;
+  byId('api-password').disabled = locked;
   byId('dropzone').setAttribute('aria-disabled', String(locked));
   document.querySelectorAll('.file-actions button').forEach(button => { button.disabled = locked; });
   byId('ready-status').textContent = state.reading ? 'Проверяем выбранные файлы…'
@@ -125,6 +127,12 @@ function renderResult() {
   byId('analysis-title').textContent = result.title;
   byId('summary-section').hidden = !result.summary.length;
   byId('summary-text').replaceChildren(...result.summary.map(text => element('p', text)));
+  byId('result-note').hidden = result.kind !== 'case-finder';
+  byId('question-column').textContent = result.kind === 'case-finder' ? 'Вопрос / набор' : 'Вопрос / подсистема';
+  if (result.kind === 'case-finder') {
+    const counts = Object.entries(QUESTION_GROUPS).map(([group, label]) => `${label}: ${result.questions.filter(question => question.group === group).length}`);
+    byId('result-note').textContent = `${counts.join(' · ')}. Резюме, подсистемы, текущее понимание и обоснования не предоставляются текущим API.`;
+  }
   byId('questions-section').hidden = !result.questions.length;
   byId('question-count').textContent = result.questions.length;
   const body = byId('questions');
@@ -146,11 +154,11 @@ function renderResult() {
     const questionCell = element('td');
     const title = element('h3', undefined, 'question-title');
     title.append(element('span', `${String(index + 1).padStart(2, '0')}. `, 'question-number'), document.createTextNode(question.text));
-    questionCell.append(title, element('span', question.subsystem || 'Подсистема не указана', 'subsystem'));
+    questionCell.append(title, element('span', QUESTION_GROUPS[question.group] || question.subsystem || 'Подсистема не указана', 'subsystem'));
     row.append(controlCell, questionCell);
     for (const [label, value] of [['ТЕКУЩЕЕ ПОНИМАНИЕ', question.understanding], ['ПОЧЕМУ ЭТО ВАЖНО', question.importance]]) {
       const cell = element('td', undefined, 'detail-cell');
-      cell.append(element('span', label, 'mobile-label'), document.createTextNode(value || 'Не получено от сервиса.'));
+      cell.append(element('span', label, 'mobile-label'), document.createTextNode(value || (result.kind === 'case-finder' ? 'Не предоставляется текущим API.' : 'Не получено от сервиса.')));
       row.append(cell);
     }
     body.append(row);
@@ -181,6 +189,7 @@ function setStatus(name) {
 async function startAnalysis(mode) {
   if (state.running || state.reading) return;
   if (mode !== 'demo' && !byId('description').value.trim() && !state.files.length) return;
+  if (mode !== 'demo' && !byId('credentials-form').reportValidity()) return;
   const run = ++state.run;
   const input = { text: byId('description').value.trim(), files: state.files.map(entry => entry.file) };
   state.mode = mode;
@@ -191,6 +200,7 @@ async function startAnalysis(mode) {
   byId('analysis-screen').hidden = false;
   byId('summary-section').hidden = true;
   byId('questions-section').hidden = true;
+  byId('result-note').hidden = true;
   byId('analysis-error').hidden = true;
   byId('retry').hidden = true;
   byId('revise').hidden = true;
@@ -217,8 +227,14 @@ async function startAnalysis(mode) {
     } else {
       const result = await analyzeDocument({
         ...input,
-        onProgress(message) {
-          if (run === state.run && state.running && typeof message === 'string') byId('progress-description').textContent = message;
+        username: byId('api-username').value,
+        password: byId('api-password').value,
+        processId: state.processId,
+        onCreated(id) { state.processId = id; },
+        onProgress(message, progress) {
+          if (run !== state.run || !state.running) return;
+          if (typeof message === 'string') byId('progress-description').textContent = message;
+          if (Number.isFinite(progress)) byId('analysis-progress').value = Math.max(0, Math.min(100, progress));
         },
         onPartial(payload) {
           if (run === state.run && state.running) acceptResult(payload, true);
@@ -226,6 +242,7 @@ async function startAnalysis(mode) {
       });
       if (run !== state.run) return;
       acceptResult(result);
+      state.processId = null;
     }
     setStatus(state.result.status);
     if (state.result.status === 'partial') {
@@ -235,6 +252,7 @@ async function startAnalysis(mode) {
     if (run !== state.run) return;
     console.error('Анализ не завершён.', error);
     const partial = Boolean(state.result);
+    state.processId = error.processId || null;
     setStatus(partial ? 'partial' : 'error');
     showError(partial ? 'Обработка прервалась. Частичный результат сохранён.' : 'Не удалось выполнить анализ', error instanceof Error ? error.message : 'Произошла ошибка. Повторите обработку.');
   } finally {
@@ -242,6 +260,7 @@ async function startAnalysis(mode) {
       state.running = false;
       byId('progress-panel').hidden = true;
       byId('retry').hidden = mode === 'demo';
+      byId('retry').textContent = state.processId ? 'Продолжить получение результата' : 'Повторить обработку';
       byId('revise').hidden = false;
       setStep(state.result ? 'results' : 'processing');
       updateForm();
@@ -256,7 +275,7 @@ async function copyQuestions() {
   try {
     if (!navigator.clipboard?.writeText) throw new Error('Clipboard API недоступен.');
     await navigator.clipboard.writeText(text);
-    byId('copy-message').textContent = `Скопировано вопросов: ${count}. Включено текущее понимание по каждому вопросу.`;
+    byId('copy-message').textContent = `Скопировано вопросов: ${count}. ${state.result.kind === 'case-finder' ? 'Указан набор каждого вопроса; текущее понимание API не предоставляет.' : 'Включено текущее понимание по каждому вопросу.'}`;
   } catch (error) {
     console.warn('Автоматическое копирование недоступно.', error);
     byId('copy-message').textContent = 'Браузер не разрешил копирование. Скопируйте подготовленный текст вручную.';
@@ -268,6 +287,7 @@ async function copyQuestions() {
 }
 
 byId('service-note').textContent = serviceNotice;
+byId('credentials-form').addEventListener('submit', event => event.preventDefault());
 byId('description').addEventListener('input', updateForm);
 byId('analysis-form').addEventListener('submit', event => { event.preventDefault(); void startAnalysis('service'); });
 byId('example').addEventListener('click', () => void startAnalysis('demo'));
@@ -300,6 +320,7 @@ byId('revise').addEventListener('click', () => {
   ++state.run;
   state.files = [];
   state.result = null;
+  state.processId = null;
   state.selected.clear();
   byId('analysis-form').reset();
   byId('file-errors').hidden = true;

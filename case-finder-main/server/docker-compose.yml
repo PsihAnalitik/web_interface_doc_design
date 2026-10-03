@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    env_file: ${CASE_FINDER_ENV_FILE:-.env}
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - case_finder_storage:/app/storage
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    env_file: ${CASE_FINDER_ENV_FILE:-.env}
+    command: ["python", "-m", "app.worker"]
+    volumes:
+      - case_finder_storage:/app/storage
+    restart: unless-stopped
+
+volumes:
+  case_finder_storage:

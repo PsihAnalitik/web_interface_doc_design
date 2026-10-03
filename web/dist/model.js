@@ -1,5 +1,9 @@
 export const MAX_FILE_SIZE = 30 * 1024 * 1024;
 export const QUESTION_COUNT = 20;
+export const QUESTION_GROUPS = {
+  baseline: 'По вашим материалам',
+  enriched: 'С учётом похожих кейсов',
+};
 const ALLOWED_EXTENSIONS = new Set(['md', 'docx', 'pdf', 'txt']);
 
 export function extension(name) {
@@ -34,6 +38,24 @@ export async function validateFile(file) {
 /** Preserve displayable fields of an incomplete response without inventing content. */
 export function normalizeResult(payload) {
   if (!payload || typeof payload !== 'object') throw new Error('Сервис вернул некорректный результат. Повторите обработку.');
+  if (payload.kind === 'case-finder') {
+    const questions = [];
+    let complete = true;
+    for (const group of Object.keys(QUESTION_GROUPS)) {
+      const items = payload[group];
+      if (!Array.isArray(items) || items.length !== QUESTION_COUNT) complete = false;
+      for (const [index, text] of (Array.isArray(items) ? items : []).entries()) {
+        if (typeof text !== 'string' || !text.trim()) { complete = false; continue; }
+        questions.push({ id: `${group}-${index + 1}`, group, text, subsystem: '', understanding: '', importance: '' });
+      }
+    }
+    if (!questions.length) throw new Error('В ответе нет доступных вопросов. Повторите обработку.');
+    return {
+      kind: 'case-finder', title: 'Вопросы к техническому заданию', summary: [], questions,
+      status: complete ? 'complete' : 'partial',
+      message: complete ? '' : 'Сервер вернул неполные наборы вопросов. Доступные вопросы можно выбрать и скопировать.',
+    };
+  }
   const summary = Array.isArray(payload.summary)
     ? payload.summary.filter(text => typeof text === 'string' && text.trim())
     : [];
@@ -66,7 +88,7 @@ export function normalizeResult(payload) {
 
 export function selectedText(questions, selected) {
   return questions.filter(question => selected.has(question.id))
-    .map((question, index) => `${index + 1}. ${question.text}\nТекущее понимание: ${question.understanding || 'Не получено от сервиса.'}`)
+    .map((question, index) => `${index + 1}. ${question.text}${question.group ? `\nНабор: ${QUESTION_GROUPS[question.group]}` : ''}\nТекущее понимание: ${question.understanding || (question.group ? 'Не предоставляется текущим API.' : 'Не получено от сервиса.')}`)
     .join('\n\n');
 }
 
