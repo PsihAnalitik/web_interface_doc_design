@@ -1,0 +1,13 @@
+**/.git
+**/.env
+**/.env.*
+**/__pycache__
+**/.pytest_cache
+**/.venv
+**/node_modules
+.agent
+.agents
+.codex
+agent_factory_baseline/runs
+agent_factory_baseline/.checks
+case-finder-main/data

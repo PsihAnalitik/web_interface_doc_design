@@ -31,15 +31,19 @@
       <p class="small muted">Данные доступа выдаёт администратор сервера. Для демопримера они не нужны. Приложение не сохраняет пароль.</p>
     </form>
     <section id="input-screen" aria-labelledby="input-title">
-      <div class="intro"><p class="eyebrow">АНАЛИЗ ТЕХНИЧЕСКОГО ЗАДАНИЯ</p><h1 id="input-title">Уточните требования<br>до начала разработки</h1><p class="lead">Добавьте описание задачи или документы, чтобы получить два набора по 20 вопросов: по вашим материалам и с учётом похожих кейсов.</p></div>
+      <div class="intro"><p class="eyebrow">АНАЛИЗ ТЕХНИЧЕСКОГО ЗАДАНИЯ</p><h1 id="input-title">Уточните требования<br>до начала разработки</h1><p id="engine-description" class="lead">Добавьте описание задачи или документы, чтобы получить два набора по 20 вопросов: по вашим материалам и с учётом похожих кейсов.</p></div>
       <div class="notice"><span class="notice-icon" aria-hidden="true">!</span><div><strong>Перед загрузкой</strong><p>Сервис работает в тестовом режиме. Не загружайте конфиденциальные документы.</p></div></div>
       <form id="analysis-form">
+        <label class="field-label" for="engine">Способ анализа</label>
+        <select id="engine" name="engine"><option value="case-finder">Case Finder — вопросы без аналогов и с аналогами</option><option value="factory">Агентская фабрика — разделы паспорта и их связи</option></select>
+        <p id="factory-scope" class="notice" hidden>Фабрика предназначена только для документов по тематике AI-агентов: LLM-ассистентов и агентских систем. Другие ИИ-домены не входят в её экспертизу. Вход — только Markdown (.md).</p>
+        <p class="small"><a href="/document_design.md" download="AI-Solution-Copilot.md">Скачать дизайн-документ проекта (.md)</a> — описание ограничений и методики; его можно загрузить для пробного анализа.</p>
         <label class="field-label" for="description">Что нужно разработать? <span>необязательно, если есть файлы</span></label>
         <textarea id="description" name="description" rows="5" placeholder="Опишите задачу или вставьте текст технического задания…"></textarea>
         <div class="dropzone" id="dropzone">
           <span class="upload-mark" aria-hidden="true">↑</span><strong>Перетащите документы сюда</strong><span class="or">или</span>
           <label class="file-picker button" for="files">Выбрать файлы<input id="files" name="files" type="file" accept=".md,.docx,.pdf,.txt" multiple></label>
-          <p class="file-hint">MD, DOCX, PDF, TXT · проверка в браузере до 30 МБ на файл<br>Лимиты сервера по умолчанию: 10 файлов, 20 МБ на файл, 100 МБ суммарно<br>PDF с текстовым слоем; сканы не поддерживаются</p>
+          <p id="file-hint" class="file-hint">MD, DOCX, PDF, TXT · проверка в браузере до 30 МБ на файл<br>Лимиты сервера по умолчанию: 10 файлов, 20 МБ на файл, 100 МБ суммарно<br>PDF с текстовым слоем; сканы не поддерживаются</p>
         </div>
         <input id="replacement" type="file" accept=".md,.docx,.pdf,.txt" hidden aria-label="Выбрать замену документа">
         <ul id="file-list" class="file-list" aria-label="Добавленные документы"></ul>
@@ -57,6 +61,7 @@
       <div id="analysis-error" class="error-panel" role="alert" hidden><strong id="error-title"></strong><p id="error-message"></p></div>
       <div id="run-actions" class="run-actions"><button id="retry" class="button" hidden>Повторить обработку</button><button id="revise" class="button" hidden>Загрузить исправленное ТЗ</button><a class="button new-analysis" href="./" target="_blank" rel="noopener noreferrer">Проанализировать другое ТЗ <span aria-hidden="true">↗</span></a></div>
       <section id="summary-section" class="summary" aria-labelledby="summary-title" hidden><h2 id="summary-title">Как мы поняли задачу</h2><div id="summary-text"></div></section>
+      <section id="maturity-section" class="summary" hidden><h2>Проработанность компонентов</h2><div id="maturity-list"></div></section>
       <p id="result-note" class="notice" hidden></p>
       <section id="questions-section" aria-labelledby="questions-title" hidden>
         <div class="questions-heading"><h2 id="questions-title">Вопросы к заказчику <span id="question-count"></span></h2><p>Отметьте лучшие вопросы для обсуждения</p></div>

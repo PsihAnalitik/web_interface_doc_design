@@ -12,6 +12,7 @@ const publicFiles = new Map([
 const fixtureAdapter = `
 import { demoResult } from './demo.js';
 export const serviceNotice = 'Тестовый стенд для снимков интерфейса. Используются только демонстрационные данные; документы никуда не отправляются.';
+export const factoryNotice = serviceNotice;
 export async function analyzeDocument({ onProgress, onPartial }) {
   const scenario = new URL(location.href).searchParams.get('scenario');
   onProgress('Проверяем полноту требований и формируем уточняющие вопросы.');

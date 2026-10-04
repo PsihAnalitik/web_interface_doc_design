@@ -17,8 +17,9 @@ export function fileSize(bytes) {
 }
 
 // This is a client-side preflight. PDF/DOCX parsing and scan detection belong to the analysis service.
-export async function validateFile(file) {
+export async function validateFile(file, engine = 'case-finder') {
   const format = extension(file.name);
+  if (engine === 'factory' && format !== 'md') return 'Фабрика принимает только Markdown-файлы (.md).';
   if (!ALLOWED_EXTENSIONS.has(format)) return 'Поддерживаются только MD, DOCX, PDF и TXT.';
   if (file.size === 0) return 'Файл пуст. Выберите документ с содержимым.';
   if (file.size > MAX_FILE_SIZE) return 'Размер файла превышает 30 МБ.';
@@ -38,6 +39,32 @@ export async function validateFile(file) {
 /** Preserve displayable fields of an incomplete response without inventing content. */
 export function normalizeResult(payload) {
   if (!payload || typeof payload !== 'object') throw new Error('Сервис вернул некорректный результат. Повторите обработку.');
+  if (payload.kind === 'factory') {
+    const summary = Array.isArray(payload.summary) ? payload.summary.filter(item => typeof item === 'string' && item.trim()) : [];
+    const questions = [];
+    const seen = new Set();
+    let valid = Array.isArray(payload.questions) && Array.isArray(payload.summary);
+    for (const item of Array.isArray(payload.questions) ? payload.questions : []) {
+      if (!item || typeof item.id !== 'string' || !item.id.trim() || seen.has(item.id) || typeof item.text !== 'string' || !item.text.trim()) {
+        valid = false;
+        continue;
+      }
+      seen.add(item.id);
+      const question = { id: item.id, text: item.text };
+      for (const key of ['subsystem', 'understanding', 'importance', 'severity']) question[key] = typeof item[key] === 'string' ? item[key] : '';
+      question.evidence = (Array.isArray(item.evidence) ? item.evidence : []).filter(ref => ref && typeof ref.source_id === 'string'
+        && Number.isInteger(ref.start_line) && ref.start_line > 0 && Number.isInteger(ref.end_line) && ref.end_line >= ref.start_line && typeof ref.text === 'string');
+      question.affected_fields = (Array.isArray(item.affected_fields) ? item.affected_fields : []).filter(value => typeof value === 'string');
+      questions.push(question);
+    }
+    if (!valid && !summary.length && !questions.length) throw new Error('В ответе нет доступных результатов. Повторите обработку.');
+    return {
+      kind: 'factory', title: typeof payload.title === 'string' ? payload.title : 'Анализ агентской фабрики',
+      summary, questions, status: payload.status === 'complete' && valid ? 'complete' : 'partial',
+      maturity: (Array.isArray(payload.maturity) ? payload.maturity : []).filter(item => item && ['component', 'level', 'reason'].every(key => typeof item[key] === 'string')),
+      message: typeof payload.message === 'string' ? payload.message : '',
+    };
+  }
   if (payload.kind === 'case-finder') {
     const questions = [];
     let complete = true;

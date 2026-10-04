@@ -1,0 +1,11 @@
+{
+  "version": "cases.v1",
+  "cases": [
+    {
+      "id": "factory_run_20261004",
+      "path": "cases/factory-run.md",
+      "status": "documented",
+      "fields": ["implementation_maturity", "deployment", "service_requirements"]
+    }
+  ]
+}

@@ -11,19 +11,29 @@ const assets = new Map([
   ['/model.js', ['model.js', 'text/javascript; charset=utf-8']],
   ['/analysis.js', ['analysis.js', 'text/javascript; charset=utf-8']],
   ['/demo.js', ['demo.js', 'text/javascript; charset=utf-8']],
+  ['/document_design.md', ['../../docs/document_design.md', 'text/markdown; charset=utf-8']],
 ]);
-export function createWebServer({ apiUrl = process.env.API_URL || 'http://127.0.0.1:8000' } = {}) {
-  const upstream = new URL(apiUrl);
-  if (!['http:', 'https:'].includes(upstream.protocol) || upstream.username || upstream.password
-    || upstream.pathname !== '/' || upstream.search || upstream.hash) {
-    throw new Error('API_URL must be an HTTP(S) origin without credentials or a path.');
+export function createWebServer({
+  apiUrl = process.env.API_URL || 'http://127.0.0.1:8000',
+  factoryApiUrl = process.env.FACTORY_API_URL || 'http://127.0.0.1:8002',
+} = {}) {
+  const origins = { legacy: new URL(apiUrl), factory: new URL(factoryApiUrl) };
+  for (const upstream of Object.values(origins)) {
+    if (!['http:', 'https:'].includes(upstream.protocol) || upstream.username || upstream.password
+      || upstream.pathname !== '/' || upstream.search || upstream.hash) {
+      throw new Error('API_URL and FACTORY_API_URL must be HTTP(S) origins without credentials or a path.');
+    }
   }
   return createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
   if (url.pathname.startsWith('/api/')) {
-    const path = url.pathname.slice(4);
+    const factory = url.pathname.startsWith('/api/factory/');
+    const upstream = factory ? origins.factory : origins.legacy;
+    const path = url.pathname.slice(factory ? '/api/factory'.length : 4);
+    const resultRoute = factory ? /^\/(get_progress|get_result)\/[a-zA-Z0-9-]+$/
+      : /^\/(get_progress|get_questions)\/[a-zA-Z0-9-]+$/;
     const allowedMethod = path === '/start_process' ? 'POST'
-      : /^\/(get_progress|get_questions)\/[a-zA-Z0-9-]+$/.test(path) ? 'GET' : null;
+      : resultRoute.test(path) ? 'GET' : null;
     if (!allowedMethod) {
       response.writeHead(404).end('Not found');
       return;

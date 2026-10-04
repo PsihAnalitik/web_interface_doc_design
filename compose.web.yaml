@@ -10,11 +10,13 @@ services:
 
   web:
     build:
-      context: ../../web
+      context: ../..
+      dockerfile: web/Dockerfile
     environment:
       HOST: 0.0.0.0
       PORT: "4173"
       API_URL: http://api:8000
+      FACTORY_API_URL: http://factory-api:8002
     ports:
       - "127.0.0.1:${WEB_PORT:-4173}:4173"
     depends_on:
@@ -27,3 +29,35 @@ services:
       retries: 12
       start_period: 5s
     restart: unless-stopped
+
+  factory-api:
+    build:
+      context: ../..
+      dockerfile: agent_factory_baseline/service/Dockerfile
+    env_file: ${CASE_FINDER_ENV_FILE:-.env}
+    environment:
+      FACTORY_STORAGE_PATH: /app/factory-storage
+    volumes:
+      - factory_storage:/app/factory-storage
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/openapi.json', timeout=5).close()"]
+      interval: 5s
+      timeout: 6s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  factory-worker:
+    build:
+      context: ../..
+      dockerfile: agent_factory_baseline/service/Dockerfile
+    env_file: ${CASE_FINDER_ENV_FILE:-.env}
+    environment:
+      FACTORY_STORAGE_PATH: /app/factory-storage
+    command: ["python", "-m", "agent_factory_baseline.web_worker"]
+    volumes:
+      - factory_storage:/app/factory-storage
+    restart: unless-stopped
+
+volumes:
+  factory_storage:

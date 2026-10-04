@@ -1,0 +1,14 @@
+[project]
+name = "copilot-factory-service"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+  "pydantic>=2.7", "openai>=1.40,<3", "mcp>=1.28.1,<2", "httpx>=0.27,<1",
+  "pyyaml>=6.0.3", "psycopg[binary]>=3.3.4",
+  "fastapi>=0.115,<0.129.1", "uvicorn>=0.32,<1",
+  "python-multipart>=0.0.12,<1", "python-dotenv>=1.0,<2",
+]
+[dependency-groups]
+dev = ["pytest>=8.3,<10"]
+[tool.uv]
+package = false

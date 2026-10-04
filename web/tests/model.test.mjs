@@ -120,3 +120,27 @@ test('Case Finder partial and malformed arrays preserve only available questions
   assert.equal(normalizeResult({ ...apiResult, enriched: [] }).status, 'partial');
   assert.throws(() => normalizeResult({ kind: 'case-finder', baseline: [], enriched: [' '] }), /нет доступных/);
 });
+
+test('factory accepts zero and variable findings without the legacy quota', () => {
+  const base = { kind: 'factory', status: 'complete', summary: ['Обзор'], questions: [] };
+  assert.equal(normalizeResult(base).status, 'complete');
+  const question = { id: 'f1', text: 'Что уточнить?', subsystem: 'Данные', understanding: 'Не определено', importance: 'Влияет на решение', severity: 'major', affected_fields: ['deployment'], evidence: [{ source_id: 'S1', start_line: 1, end_line: 2, text: '<script>literal</script>' }] };
+  const result = normalizeResult({ ...base, questions: [question], maturity: [{ component: 'Поиск', level: 'experiment', reason: 'Нет оценки' }] });
+  assert.equal(result.status, 'complete');
+  assert.deepEqual(result.questions[0], question);
+  assert.equal(result.maturity[0].level, 'experiment');
+  assert.equal(normalizeResult({ ...base, status: 'partial' }).status, 'partial');
+});
+
+test('factory retains valid findings but marks duplicate and malformed findings partial', () => {
+  const item = { id: 'f1', text: 'Вопрос?' };
+  const result = normalizeResult({ kind: 'factory', status: 'complete', summary: [], questions: [item, item, null] });
+  assert.equal(result.status, 'partial');
+  assert.equal(result.questions.length, 1);
+  assert.throws(() => normalizeResult({ kind: 'factory', status: 'complete' }), /нет доступных/);
+});
+
+test('factory file preflight restricts inputs to Markdown', async () => {
+  assert.equal(await validateFile(new File(['# Doc'], 'TASK.MD'), 'factory'), null);
+  for (const name of ['task.txt', 'task.pdf', 'task.docx']) assert.match(await validateFile(new File(['text'], name), 'factory'), /Markdown/);
+});

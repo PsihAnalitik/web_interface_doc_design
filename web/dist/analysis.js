@@ -2,6 +2,7 @@ import { QUESTION_COUNT } from './model.js';
 
 const stages = {
   queued: 'Задание в очереди…',
+  running: 'Фабрика проверяет разделы паспорта и связи между ними…',
   generating_baseline: 'Готовим вопросы по вашим материалам…',
   summarizing: 'Анализируем описание задачи…',
   embedding: 'Подготавливаем поиск похожих кейсов…',
@@ -24,17 +25,23 @@ function apiError(response, payload) {
 }
 
 /** Uses the existing multipart/job API. Credentials and process ID stay in this tab. */
-export async function analyzeDocument({ text, files, username, password, processId = null, onCreated = () => {}, onProgress = () => {} }) {
+export async function analyzeDocument({ text, files, username, password, processId = null, engine = 'case-finder', onCreated = () => {}, onProgress = () => {} }) {
   if (!username || !password || username.includes(':') || !/^[\x20-\x7e]+$/.test(username + password)) {
     const error = new Error('Введите логин и пароль сервера латинскими буквами, цифрами или символами ASCII. Логин не должен содержать двоеточие.');
     error.processId = processId;
     throw error;
   }
+  const factory = engine === 'factory';
+  if (!['case-finder', 'factory'].includes(engine)) throw new Error('Неизвестный способ анализа.');
+  if (factory && !processId && (text.trim() || !files.length || files.some(file => !file.name.toLowerCase().endsWith('.md')))) {
+    throw new Error('Для фабрики загрузите только Markdown-файлы (.md), без текста в поле описания.');
+  }
+  const prefix = factory ? '/factory' : '';
   const headers = { Authorization: `Basic ${btoa(`${username}:${password}`)}` };
   async function request(path, options = {}) {
     let response;
     try {
-      response = await fetch(`/api${path}`, {
+      response = await fetch(`/api${prefix}${path}`, {
         ...options, headers, credentials: 'omit', cache: 'no-store', redirect: 'error',
         signal: AbortSignal.timeout(120_000),
       });
@@ -55,10 +62,12 @@ export async function analyzeDocument({ text, files, username, password, process
   try {
     if (!processId) {
       const body = new FormData();
-      body.append('text', text);
+      if (!factory) body.append('text', text);
       for (const file of files) body.append('files', file, file.name);
-      body.append('question_count', String(QUESTION_COUNT));
-      body.append('language', 'Russian');
+      if (!factory) {
+        body.append('question_count', String(QUESTION_COUNT));
+        body.append('language', 'Russian');
+      }
       onProgress('Отправляем материалы и проверяем документы…');
       const { response, payload } = await request('/start_process', { method: 'POST', body });
       if (response.status !== 202 || typeof payload?.process_id !== 'string' || !/^[a-zA-Z0-9-]+$/.test(payload.process_id)) {
@@ -73,6 +82,11 @@ export async function analyzeDocument({ text, files, username, password, process
       if (response.status !== 200 || !payload || typeof payload.status !== 'string') {
         throw new Error('Сервер вернул некорректный прогресс задания.');
       }
+      if (factory && payload.status === 'failed') {
+        const result = await request(`/get_result/${id}`);
+        if (result.response.status !== 200) throw new Error('Сервер не вернул частичный результат.');
+        return { ...result.payload, kind: 'factory', status: 'partial' };
+      }
       if (payload.status === 'failed' || payload.status === 'deletion_requested') {
         processId = null;
         throw new Error(payload.status === 'failed'
@@ -82,8 +96,8 @@ export async function analyzeDocument({ text, files, username, password, process
       if (!stages[payload.status]) throw new Error(`Неизвестный статус задания: ${payload.status}`);
       onProgress(stages[payload.status], payload.progress);
       if (payload.status === 'completed') {
-        const result = await request(`/get_questions/${id}?mode=both`);
-        if (result.response.status === 200) return { ...result.payload, kind: 'case-finder' };
+        const result = await request(factory ? `/get_result/${id}` : `/get_questions/${id}?mode=both`);
+        if (result.response.status === 200) return { ...result.payload, kind: factory ? 'factory' : 'case-finder' };
         if (result.response.status !== 202) throw new Error('Сервер вернул некорректный статус результата.');
       }
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -95,3 +109,5 @@ export async function analyzeDocument({ text, files, username, password, process
 }
 
 export const serviceNotice = 'Материалы отправляются на сервер Case Finder, сохраняются там и передаются в OpenAI для анализа. Сервер возвращает два набора вопросов; резюме, подсистемы и пояснения в текущем API отсутствуют. Демопример не отправляет ваши материалы.';
+
+export const factoryNotice = 'Фабрика принимает только Markdown-файлы (.md) по тематике LLM-ассистентов и AI-агентских систем. Материалы сохраняются на сервере и передаются настроенному провайдеру моделей. Число замечаний определяется документом; фиксированной квоты вопросов нет.';

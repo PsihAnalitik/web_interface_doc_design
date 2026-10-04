@@ -1,0 +1,1274 @@
+{
+  "extract_business_problem": {
+    "field_id": "business_problem",
+    "items": [
+      {
+        "check_id": "business_problem.need",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "business_problem.e1",
+            "source_id": "S1",
+            "start_line": 5,
+            "end_line": 5,
+            "quote": "Операторы тратят время на поиск инструкции и перенос результата в карточку обращения. Измерения затрат времени пока не проводились."
+          }
+        ]
+      },
+      {
+        "check_id": "business_problem.evidence",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "business_problem.e2",
+            "source_id": "S1",
+            "start_line": 5,
+            "end_line": 5,
+            "quote": "Операторы тратят время на поиск инструкции и перенос результата в карточку обращения. Измерения затрат времени пока не проводились."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_business_problem": {
+    "field_id": "business_problem",
+    "checks": [
+      {
+        "check_id": "business_problem.need",
+        "status": "satisfied",
+        "reason": "Описаны затраты времени на поиск и перенос результата.",
+        "evidence_ids": [
+          "business_problem.e1"
+        ]
+      },
+      {
+        "check_id": "business_problem.evidence",
+        "status": "insufficient_data",
+        "reason": "Проблема заявлена, но измерения затрат времени не проводились.",
+        "evidence_ids": [
+          "business_problem.e2"
+        ]
+      }
+    ],
+    "findings": []
+  },
+  "extract_users": {
+    "field_id": "users",
+    "items": [
+      {
+        "check_id": "users.roles",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "users.e1",
+            "source_id": "S1",
+            "start_line": 6,
+            "end_line": 6,
+            "quote": "Пользователь — оператор, ответственный за обработку обращения. Руководитель поддержки владеет процессом и принимает результат работы продукта."
+          }
+        ]
+      },
+      {
+        "check_id": "users.ownership",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "users.e2",
+            "source_id": "S1",
+            "start_line": 6,
+            "end_line": 6,
+            "quote": "Пользователь — оператор, ответственный за обработку обращения. Руководитель поддержки владеет процессом и принимает результат работы продукта."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_users": {
+    "field_id": "users",
+    "checks": [
+      {
+        "check_id": "users.roles",
+        "status": "satisfied",
+        "reason": "Оператор указан как пользователь.",
+        "evidence_ids": [
+          "users.e1"
+        ]
+      },
+      {
+        "check_id": "users.ownership",
+        "status": "satisfied",
+        "reason": "Владелец процесса и принимающий результат руководитель названы.",
+        "evidence_ids": [
+          "users.e2"
+        ]
+      }
+    ],
+    "findings": []
+  },
+  "extract_current_process": {
+    "field_id": "current_process",
+    "items": [
+      {
+        "check_id": "current_process.steps",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "current_process.e1",
+            "source_id": "S1",
+            "start_line": 7,
+            "end_line": 7,
+            "quote": "Сейчас оператор вручную читает обращение, ищет инструкцию в базе знаний, пишет ответ и меняет статус карточки CRM."
+          }
+        ]
+      },
+      {
+        "check_id": "current_process.baseline",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "current_process.e2",
+            "source_id": "S1",
+            "start_line": 5,
+            "end_line": 7,
+            "quote": "Операторы тратят время на поиск инструкции и перенос результата в карточку обращения. Измерения затрат времени пока не проводились.\nПользователь — оператор, ответственный за обработку обращения. Руководитель поддержки владеет процессом и принимает результат работы продукта.\nСейчас оператор вручную читает обращение, ищет инструкцию в базе знаний, пишет ответ и меняет статус карточки CRM."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_current_process": {
+    "field_id": "current_process",
+    "checks": [
+      {
+        "check_id": "current_process.steps",
+        "status": "satisfied",
+        "reason": "Текущая последовательность ручной работы описана.",
+        "evidence_ids": [
+          "current_process.e1"
+        ]
+      },
+      {
+        "check_id": "current_process.baseline",
+        "status": "satisfied",
+        "reason": "Ручные операции и отсутствие измерений явно разделены; численные оценки не добавляются.",
+        "evidence_ids": [
+          "current_process.e2"
+        ]
+      }
+    ],
+    "findings": []
+  },
+  "extract_expected_outcome": {
+    "field_id": "expected_outcome",
+    "items": [
+      {
+        "check_id": "expected_outcome.result",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "expected_outcome.e1",
+            "source_id": "S1",
+            "start_line": 8,
+            "end_line": 8,
+            "quote": "Ожидаемый результат — уменьшить время подготовки ответа при сохранении контроля оператором; целевое значение сокращения времени пока не установлено."
+          }
+        ]
+      },
+      {
+        "check_id": "expected_outcome.success",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "expected_outcome.e2",
+            "source_id": "S1",
+            "start_line": 8,
+            "end_line": 8,
+            "quote": "Ожидаемый результат — уменьшить время подготовки ответа при сохранении контроля оператором; целевое значение сокращения времени пока не установлено."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_expected_outcome": {
+    "field_id": "expected_outcome",
+    "checks": [
+      {
+        "check_id": "expected_outcome.result",
+        "status": "satisfied",
+        "reason": "Ожидается сокращение подготовки ответа при сохранении контроля.",
+        "evidence_ids": [
+          "expected_outcome.e1"
+        ]
+      },
+      {
+        "check_id": "expected_outcome.success",
+        "status": "insufficient_data",
+        "reason": "Целевое изменение времени не установлено.",
+        "evidence_ids": [
+          "expected_outcome.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "expected_outcome.f1",
+        "check_ids": [
+          "expected_outcome.success"
+        ],
+        "severity": "major",
+        "statement": "Целевое сокращение времени не задано.",
+        "question": "Какое сокращение времени подготовки ответа будет значимым для команды поддержки?",
+        "evidence_ids": [
+          "expected_outcome.e2"
+        ]
+      }
+    ]
+  },
+  "extract_scenarios": {
+    "field_id": "scenarios",
+    "items": [
+      {
+        "check_id": "scenarios.flow",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "scenarios.e1",
+            "source_id": "S1",
+            "start_line": 10,
+            "end_line": 11,
+            "quote": "Оператор открывает обращение, запрашивает проект ответа, проверяет найденные основания и подтверждает отправку либо редактирует текст.\nАссистент ищет текстовые инструкции, создаёт черновик ответа и после подтверждения оператора переводит карточку CRM из статуса «новое» в статус «обработано»."
+          }
+        ]
+      },
+      {
+        "check_id": "scenarios.scope",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "scenarios.e2",
+            "source_id": "S1",
+            "start_line": 12,
+            "end_line": 12,
+            "quote": "Автоматическая отправка сообщений клиенту, удаление карточек, работа с изображениями и голосом исключены."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_scenarios": {
+    "field_id": "scenarios",
+    "checks": [
+      {
+        "check_id": "scenarios.flow",
+        "status": "satisfied",
+        "reason": "Описаны запрос черновика, проверка и изменение карточки.",
+        "evidence_ids": [
+          "scenarios.e1"
+        ]
+      },
+      {
+        "check_id": "scenarios.scope",
+        "status": "satisfied",
+        "reason": "Исключённые операции и нетекстовые сценарии названы.",
+        "evidence_ids": [
+          "scenarios.e2"
+        ]
+      }
+    ],
+    "findings": []
+  },
+  "extract_agent_actions": {
+    "field_id": "agent_actions",
+    "items": [
+      {
+        "check_id": "agent_actions.operations",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "agent_actions.e1",
+            "source_id": "S1",
+            "start_line": 11,
+            "end_line": 11,
+            "quote": "Ассистент ищет текстовые инструкции, создаёт черновик ответа и после подтверждения оператора переводит карточку CRM из статуса «новое» в статус «обработано»."
+          }
+        ]
+      },
+      {
+        "check_id": "agent_actions.boundaries",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "agent_actions.e2",
+            "source_id": "S1",
+            "start_line": 12,
+            "end_line": 13,
+            "quote": "Автоматическая отправка сообщений клиенту, удаление карточек, работа с изображениями и голосом исключены.\nКаждое изменение в CRM требует подтверждения оператора; оператор может отказаться от предложенного изменения."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_agent_actions": {
+    "field_id": "agent_actions",
+    "checks": [
+      {
+        "check_id": "agent_actions.operations",
+        "status": "satisfied",
+        "reason": "Поиск, черновик ответа и конкретный переход статуса названы.",
+        "evidence_ids": [
+          "agent_actions.e1"
+        ]
+      },
+      {
+        "check_id": "agent_actions.boundaries",
+        "status": "satisfied",
+        "reason": "Запрещены отправка и удаление; изменения требуют подтверждения.",
+        "evidence_ids": [
+          "agent_actions.e2"
+        ]
+      }
+    ],
+    "findings": []
+  },
+  "extract_human_control": {
+    "field_id": "human_control",
+    "items": [
+      {
+        "check_id": "human_control.approval",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "human_control.e1",
+            "source_id": "S1",
+            "start_line": 13,
+            "end_line": 13,
+            "quote": "Каждое изменение в CRM требует подтверждения оператора; оператор может отказаться от предложенного изменения."
+          }
+        ]
+      },
+      {
+        "check_id": "human_control.recovery",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "human_control.e2",
+            "source_id": "S1",
+            "start_line": 14,
+            "end_line": 14,
+            "quote": "При ошибке инструмента ассистент сообщает об ошибке и передаёт действие оператору без автоматического повторения изменения."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_human_control": {
+    "field_id": "human_control",
+    "checks": [
+      {
+        "check_id": "human_control.approval",
+        "status": "satisfied",
+        "reason": "Оператор подтверждает каждое изменение либо отказывается от него.",
+        "evidence_ids": [
+          "human_control.e1"
+        ]
+      },
+      {
+        "check_id": "human_control.recovery",
+        "status": "satisfied",
+        "reason": "При ошибке предусмотрена передача действия оператору без автоматического повтора.",
+        "evidence_ids": [
+          "human_control.e2"
+        ]
+      }
+    ],
+    "findings": []
+  },
+  "extract_acceptance": {
+    "field_id": "acceptance",
+    "items": [
+      {
+        "check_id": "acceptance.criteria",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "acceptance.e1",
+            "source_id": "S1",
+            "start_line": 27,
+            "end_line": 27,
+            "quote": "Условия приёмки, проверочная выборка и допустимая доля ошибок ещё не определены."
+          }
+        ]
+      },
+      {
+        "check_id": "acceptance.procedure",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "acceptance.e2",
+            "source_id": "S1",
+            "start_line": 27,
+            "end_line": 27,
+            "quote": "Условия приёмки, проверочная выборка и допустимая доля ошибок ещё не определены."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_acceptance": {
+    "field_id": "acceptance",
+    "checks": [
+      {
+        "check_id": "acceptance.criteria",
+        "status": "insufficient_data",
+        "reason": "Условия приёмки и допустимая доля ошибок явно не определены.",
+        "evidence_ids": [
+          "acceptance.e1"
+        ]
+      },
+      {
+        "check_id": "acceptance.procedure",
+        "status": "insufficient_data",
+        "reason": "Проверочная выборка не определена; процедура проверки не описана.",
+        "evidence_ids": [
+          "acceptance.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "acceptance.f1",
+        "check_ids": [
+          "acceptance.criteria",
+          "acceptance.procedure"
+        ],
+        "severity": "major",
+        "statement": "Не заданы условия приёмки и проверочная выборка.",
+        "question": "На каких обращениях и по каким условиям будет приниматься результат?",
+        "evidence_ids": [
+          "acceptance.e1",
+          "acceptance.e2"
+        ]
+      }
+    ]
+  },
+  "extract_data_sources": {
+    "field_id": "data_sources",
+    "items": [
+      {
+        "check_id": "data_sources.inventory",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "data_sources.e1",
+            "source_id": "S1",
+            "start_line": 16,
+            "end_line": 17,
+            "quote": "Источник знаний — текстовые Markdown-инструкции поддержки, предоставляемые владельцем процесса; карточки обращений хранятся в CRM.\nОжидается около 200 инструкций с еженедельным обновлением. Формат карточки CRM и доступ к данным для разработки пока не предоставлены."
+          }
+        ]
+      },
+      {
+        "check_id": "data_sources.updates",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "data_sources.e2",
+            "source_id": "S1",
+            "start_line": 17,
+            "end_line": 17,
+            "quote": "Ожидается около 200 инструкций с еженедельным обновлением. Формат карточки CRM и доступ к данным для разработки пока не предоставлены."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_data_sources": {
+    "field_id": "data_sources",
+    "checks": [
+      {
+        "check_id": "data_sources.inventory",
+        "status": "insufficient_data",
+        "reason": "Источники названы, но формат карточки и доступ к данным разработки не предоставлены.",
+        "evidence_ids": [
+          "data_sources.e1"
+        ]
+      },
+      {
+        "check_id": "data_sources.updates",
+        "status": "satisfied",
+        "reason": "Объём и обновление инструкций заданы; условия карточек остаются неизвестными.",
+        "evidence_ids": [
+          "data_sources.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "data_sources.f1",
+        "check_ids": [
+          "data_sources.inventory"
+        ],
+        "severity": "major",
+        "statement": "Формат карточки и доступ к данным разработки пока не предоставлены.",
+        "question": "Какие поля карточек и примеры данных будут доступны для разработки и проверки?",
+        "evidence_ids": [
+          "data_sources.e1"
+        ]
+      }
+    ]
+  },
+  "extract_data_quality": {
+    "field_id": "data_quality",
+    "items": [
+      {
+        "check_id": "data_quality.condition",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "data_quality.e1",
+            "source_id": "S1",
+            "start_line": 18,
+            "end_line": 18,
+            "quote": "Полнота и актуальность инструкций ещё не проверялись; ответственный за проверку качества — владелец процесса."
+          }
+        ]
+      },
+      {
+        "check_id": "data_quality.verification",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "data_quality.e2",
+            "source_id": "S1",
+            "start_line": 18,
+            "end_line": 18,
+            "quote": "Полнота и актуальность инструкций ещё не проверялись; ответственный за проверку качества — владелец процесса."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_data_quality": {
+    "field_id": "data_quality",
+    "checks": [
+      {
+        "check_id": "data_quality.condition",
+        "status": "insufficient_data",
+        "reason": "Полнота и актуальность не проверены; это не доказательство плохого качества.",
+        "evidence_ids": [
+          "data_quality.e1"
+        ]
+      },
+      {
+        "check_id": "data_quality.verification",
+        "status": "insufficient_data",
+        "reason": "Ответственный назван, но результатов проверки ещё нет.",
+        "evidence_ids": [
+          "data_quality.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "data_quality.f1",
+        "check_ids": [
+          "data_quality.condition",
+          "data_quality.verification"
+        ],
+        "severity": "major",
+        "statement": "Пригодность инструкций не проверена.",
+        "question": "Как будет проверяться полнота и актуальность инструкций до использования ассистентом?",
+        "evidence_ids": [
+          "data_quality.e1",
+          "data_quality.e2"
+        ]
+      }
+    ]
+  },
+  "extract_access_rights": {
+    "field_id": "access_rights",
+    "items": [
+      {
+        "check_id": "access_rights.permissions",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "access_rights.e1",
+            "source_id": "S1",
+            "start_line": 19,
+            "end_line": 19,
+            "quote": "Роли доступа и разрешённые операции сервисной учётной записи CRM пока не согласованы."
+          }
+        ]
+      },
+      {
+        "check_id": "access_rights.handling",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "access_rights.e2",
+            "source_id": "S1",
+            "start_line": 20,
+            "end_line": 20,
+            "quote": "Данные обращений должны оставаться в локальном контуре; передавать их внешним поставщикам моделей нельзя."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_access_rights": {
+    "field_id": "access_rights",
+    "checks": [
+      {
+        "check_id": "access_rights.permissions",
+        "status": "insufficient_data",
+        "reason": "Права сервисной учётной записи пока не согласованы.",
+        "evidence_ids": [
+          "access_rights.e1"
+        ]
+      },
+      {
+        "check_id": "access_rights.handling",
+        "status": "satisfied",
+        "reason": "Требуется локальная обработка без передачи внешнему поставщику.",
+        "evidence_ids": [
+          "access_rights.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "access_rights.f1",
+        "check_ids": [
+          "access_rights.permissions"
+        ],
+        "severity": "critical",
+        "statement": "Не согласованы полномочия учётной записи для изменения статуса CRM.",
+        "question": "Какие операции и права разрешены сервисной учётной записи после подтверждения оператора?",
+        "evidence_ids": [
+          "access_rights.e1"
+        ]
+      }
+    ]
+  },
+  "extract_integrations": {
+    "field_id": "integrations",
+    "items": [
+      {
+        "check_id": "integrations.interfaces",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "integrations.e1",
+            "source_id": "S1",
+            "start_line": 21,
+            "end_line": 21,
+            "quote": "CRM существует, но документация интерфейса интеграции и тестовый доступ ещё не предоставлены."
+          }
+        ]
+      },
+      {
+        "check_id": "integrations.conditions",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "integrations.e2",
+            "source_id": "S1",
+            "start_line": 21,
+            "end_line": 21,
+            "quote": "CRM существует, но документация интерфейса интеграции и тестовый доступ ещё не предоставлены."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_integrations": {
+    "field_id": "integrations",
+    "checks": [
+      {
+        "check_id": "integrations.interfaces",
+        "status": "insufficient_data",
+        "reason": "CRM существует, но пригодный интерфейс не описан.",
+        "evidence_ids": [
+          "integrations.e1"
+        ]
+      },
+      {
+        "check_id": "integrations.conditions",
+        "status": "insufficient_data",
+        "reason": "Тестовый доступ не предоставлен; лимиты и условия ошибок интерфейса не описаны.",
+        "evidence_ids": [
+          "integrations.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "integrations.f1",
+        "check_ids": [
+          "integrations.interfaces",
+          "integrations.conditions"
+        ],
+        "severity": "critical",
+        "statement": "Нет предоставленного описания интерфейса и тестового доступа; возможность требуемого изменения пока не подтверждена.",
+        "question": "Как получить описание интерфейса CRM и проверить поддержку перехода статуса на тестовых данных?",
+        "evidence_ids": [
+          "integrations.e1",
+          "integrations.e2"
+        ]
+      }
+    ]
+  },
+  "extract_deployment": {
+    "field_id": "deployment",
+    "items": [
+      {
+        "check_id": "deployment.environment",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "deployment.e1",
+            "source_id": "S1",
+            "start_line": 23,
+            "end_line": 23,
+            "quote": "Ассистент должен работать на локальной LLM менее 35 млрд параметров; вычислительные ресурсы ещё требуется определить."
+          }
+        ]
+      },
+      {
+        "check_id": "deployment.operations",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "deployment.e2",
+            "source_id": "S1",
+            "start_line": 24,
+            "end_line": 24,
+            "quote": "За эксплуатацию существующей CRM отвечает её владелец; ответственность за эксплуатацию ассистента не назначена."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_deployment": {
+    "field_id": "deployment",
+    "checks": [
+      {
+        "check_id": "deployment.environment",
+        "status": "insufficient_data",
+        "reason": "Локальная модель задана, вычислительные ресурсы ещё не определены.",
+        "evidence_ids": [
+          "deployment.e1"
+        ]
+      },
+      {
+        "check_id": "deployment.operations",
+        "status": "insufficient_data",
+        "reason": "Владелец эксплуатации ассистента не назначен.",
+        "evidence_ids": [
+          "deployment.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "deployment.f1",
+        "check_ids": [
+          "deployment.environment"
+        ],
+        "severity": "major",
+        "statement": "Не определены ресурсы локального контура.",
+        "question": "Какие вычислительные ресурсы доступны для локального запуска?",
+        "evidence_ids": [
+          "deployment.e1"
+        ]
+      },
+      {
+        "id": "deployment.f2",
+        "check_ids": [
+          "deployment.operations"
+        ],
+        "severity": "major",
+        "statement": "Ответственность за эксплуатацию ассистента не назначена.",
+        "question": "Кто будет отвечать за эксплуатацию ассистента и обработку сбоев?",
+        "evidence_ids": [
+          "deployment.e2"
+        ]
+      }
+    ]
+  },
+  "extract_service_requirements": {
+    "field_id": "service_requirements",
+    "items": [
+      {
+        "check_id": "service_requirements.performance",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "service_requirements.e1",
+            "source_id": "S1",
+            "start_line": 25,
+            "end_line": 25,
+            "quote": "Нагрузка, допустимая задержка и требования к доступности сервиса ещё не согласованы."
+          }
+        ]
+      },
+      {
+        "check_id": "service_requirements.reliability",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "service_requirements.e2",
+            "source_id": "S1",
+            "start_line": 25,
+            "end_line": 26,
+            "quote": "Нагрузка, допустимая задержка и требования к доступности сервиса ещё не согласованы.\nСистема должна показывать оператору основания ответа и ошибки инструментов, чтобы он мог продолжить работу вручную."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_service_requirements": {
+    "field_id": "service_requirements",
+    "checks": [
+      {
+        "check_id": "service_requirements.performance",
+        "status": "insufficient_data",
+        "reason": "Нагрузка и допустимая задержка ещё не согласованы.",
+        "evidence_ids": [
+          "service_requirements.e1"
+        ]
+      },
+      {
+        "check_id": "service_requirements.reliability",
+        "status": "insufficient_data",
+        "reason": "Наблюдаемость для оператора описана, требования доступности не согласованы.",
+        "evidence_ids": [
+          "service_requirements.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "service_requirements.f1",
+        "check_ids": [
+          "service_requirements.performance",
+          "service_requirements.reliability"
+        ],
+        "severity": "major",
+        "statement": "Нагрузка, задержка и доступность пока не согласованы.",
+        "question": "При какой нагрузке нужно обеспечить какую задержку и доступность сервиса?",
+        "evidence_ids": [
+          "service_requirements.e1",
+          "service_requirements.e2"
+        ]
+      }
+    ]
+  },
+  "extract_team_capabilities": {
+    "field_id": "team_capabilities",
+    "items": [
+      {
+        "check_id": "team_capabilities.experience",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "team_capabilities.e1",
+            "source_id": "S2",
+            "start_line": 5,
+            "end_line": 10,
+            "quote": "Фиксированный состав: один продакт с 5 годами опыта, один fullstack-разработчик с 6 годами опыта и один ML-инженер.\nУ ML-инженера сначала было 2 года работы с предиктивной аналитикой, затем 1 год разработки агентских систем; эти периоды следуют друг за другом.\nВ рамках вымышленного учебного стенда этот состав реализовал текстовый ассистент на локальной LLM менее 35 млрд параметров и подключил тестовый REST-инструмент.\nПродакт описывал сценарии, fullstack-разработчик создавал интерфейс и REST-интеграцию, ML-инженер настраивал извлечение знаний и вызов инструмента.\nСведения о результатах измерения качества и задержки учебного стенда не представлены. Совпадение условий с новым проектом не проверено.\nОпыт интеграции с CRM из данного учебного сценария не подтверждён; это неизвестность, а не доказательство отсутствия навыка."
+          }
+        ]
+      },
+      {
+        "check_id": "team_capabilities.requirements",
+        "status": "not_found",
+        "evidence": []
+      }
+    ]
+  },
+  "verdict_team_capabilities": {
+    "field_id": "team_capabilities",
+    "checks": [
+      {
+        "check_id": "team_capabilities.experience",
+        "status": "satisfied",
+        "reason": "В синтетическом профиле различены состав, учебный опыт и неподтверждённая применимость к CRM.",
+        "evidence_ids": [
+          "team_capabilities.e1"
+        ]
+      },
+      {
+        "check_id": "team_capabilities.requirements",
+        "status": "insufficient_data",
+        "reason": "В документе заказчика нет отдельного перечня требований к компетенциям; он не придумывается.",
+        "evidence_ids": []
+      }
+    ],
+    "findings": []
+  },
+  "extract_team_availability": {
+    "field_id": "team_availability",
+    "items": [
+      {
+        "check_id": "team_availability.allocation",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "team_availability.e1",
+            "source_id": "S2",
+            "start_line": 11,
+            "end_line": 11,
+            "quote": "Доступность участников для нового проекта и распределение времени ещё не согласованы. Другие сотрудники в состав команды не добавляются."
+          }
+        ]
+      },
+      {
+        "check_id": "team_availability.constraints",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "team_availability.e2",
+            "source_id": "S2",
+            "start_line": 8,
+            "end_line": 12,
+            "quote": "Продакт описывал сценарии, fullstack-разработчик создавал интерфейс и REST-интеграцию, ML-инженер настраивал извлечение знаний и вызов инструмента.\nСведения о результатах измерения качества и задержки учебного стенда не представлены. Совпадение условий с новым проектом не проверено.\nОпыт интеграции с CRM из данного учебного сценария не подтверждён; это неизвестность, а не доказательство отсутствия навыка.\nДоступность участников для нового проекта и распределение времени ещё не согласованы. Другие сотрудники в состав команды не добавляются.\nСтавки, бюджет и сроки в этом учебном профиле не заданы."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_team_availability": {
+    "field_id": "team_availability",
+    "checks": [
+      {
+        "check_id": "team_availability.allocation",
+        "status": "insufficient_data",
+        "reason": "Доступность и распределение времени не согласованы.",
+        "evidence_ids": [
+          "team_availability.e1"
+        ]
+      },
+      {
+        "check_id": "team_availability.constraints",
+        "status": "satisfied",
+        "reason": "Названы распределение работ учебного стенда и ограничение состава; они не заменяют доступность нового проекта.",
+        "evidence_ids": [
+          "team_availability.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "team_availability.f1",
+        "check_ids": [
+          "team_availability.allocation"
+        ],
+        "severity": "major",
+        "statement": "Неизвестна доступность фиксированной команды.",
+        "question": "Сколько времени каждый из трёх участников сможет выделять на проект?",
+        "evidence_ids": [
+          "team_availability.e1"
+        ]
+      }
+    ]
+  },
+  "extract_implementation_maturity": {
+    "field_id": "implementation_maturity",
+    "items": [
+      {
+        "check_id": "implementation_maturity.analogues",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "implementation_maturity.e1",
+            "source_id": "S2",
+            "start_line": 7,
+            "end_line": 10,
+            "quote": "В рамках вымышленного учебного стенда этот состав реализовал текстовый ассистент на локальной LLM менее 35 млрд параметров и подключил тестовый REST-инструмент.\nПродакт описывал сценарии, fullstack-разработчик создавал интерфейс и REST-интеграцию, ML-инженер настраивал извлечение знаний и вызов инструмента.\nСведения о результатах измерения качества и задержки учебного стенда не представлены. Совпадение условий с новым проектом не проверено.\nОпыт интеграции с CRM из данного учебного сценария не подтверждён; это неизвестность, а не доказательство отсутствия навыка."
+          }
+        ]
+      },
+      {
+        "check_id": "implementation_maturity.hypotheses",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "implementation_maturity.e2",
+            "source_id": "S1",
+            "start_line": 30,
+            "end_line": 30,
+            "quote": "Открытый вопрос: достаточен ли локальный вычислительный контур для согласованных требований к качеству и задержке?"
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_implementation_maturity": {
+    "field_id": "implementation_maturity",
+    "checks": [
+      {
+        "check_id": "implementation_maturity.analogues",
+        "status": "insufficient_data",
+        "reason": "Учебный аналог описан, но сопоставимость и результаты измерения не представлены.",
+        "evidence_ids": [
+          "implementation_maturity.e1"
+        ]
+      },
+      {
+        "check_id": "implementation_maturity.hypotheses",
+        "status": "insufficient_data",
+        "reason": "Сформулирован вопрос о достаточности контура; условий для проверки гипотезы пока недостаточно.",
+        "evidence_ids": [
+          "implementation_maturity.e2"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "implementation_maturity.f1",
+        "check_ids": [
+          "implementation_maturity.analogues",
+          "implementation_maturity.hypotheses"
+        ],
+        "severity": "major",
+        "statement": "Переносимость учебного аналога и достаточность локального контура пока не подтверждены.",
+        "question": "Какие условия нового проекта совпадают с учебным аналогом и какую гипотезу следует проверить первой?",
+        "evidence_ids": [
+          "implementation_maturity.e1",
+          "implementation_maturity.e2"
+        ]
+      }
+    ]
+  },
+  "extract_declared_unknowns": {
+    "field_id": "declared_unknowns",
+    "items": [
+      {
+        "check_id": "declared_unknowns.questions",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "declared_unknowns.e1",
+            "source_id": "S1",
+            "start_line": 29,
+            "end_line": 30,
+            "quote": "Открытый вопрос: какие операции доступны через интерфейс CRM и какие права можно выдать сервисной учётной записи?\nОткрытый вопрос: достаточен ли локальный вычислительный контур для согласованных требований к качеству и задержке?"
+          }
+        ]
+      },
+      {
+        "check_id": "declared_unknowns.limitations",
+        "status": "found",
+        "evidence": [
+          {
+            "id": "declared_unknowns.e2",
+            "source_id": "S1",
+            "start_line": 31,
+            "end_line": 31,
+            "quote": "Материал подготовлен сразу как текстовый Markdown; изображений и неперенесённых вложений нет."
+          }
+        ]
+      }
+    ]
+  },
+  "verdict_declared_unknowns": {
+    "field_id": "declared_unknowns",
+    "checks": [
+      {
+        "check_id": "declared_unknowns.questions",
+        "status": "satisfied",
+        "reason": "Два открытых вопроса представлены явно и не считаются решёнными.",
+        "evidence_ids": [
+          "declared_unknowns.e1"
+        ]
+      },
+      {
+        "check_id": "declared_unknowns.limitations",
+        "status": "satisfied",
+        "reason": "Автор сообщает, что материал изначально текстовый и неперенесённых частей нет.",
+        "evidence_ids": [
+          "declared_unknowns.e2"
+        ]
+      }
+    ],
+    "findings": []
+  },
+  "synthesis": {
+    "summary": "Записанная демонстрация: синтетический текстовый ассистент готовит черновик ответа и изменяет статус CRM после подтверждения оператора. Основной блокер — неизвестные интерфейс и права CRM. Также не согласованы приёмка, проверка данных, нагрузка, ресурсы и доступность команды. Результат заранее составлен человеком; LLM не вызывалась и качество анализа здесь не измеряется.",
+    "field_ids": [
+      "business_problem",
+      "users",
+      "current_process",
+      "expected_outcome",
+      "scenarios",
+      "agent_actions",
+      "human_control",
+      "acceptance",
+      "data_sources",
+      "data_quality",
+      "access_rights",
+      "integrations",
+      "deployment",
+      "service_requirements",
+      "team_capabilities",
+      "team_availability",
+      "implementation_maturity",
+      "declared_unknowns"
+    ],
+    "findings": [
+      {
+        "id": "synthesis.f1",
+        "kind": "cross_section",
+        "severity": "critical",
+        "statement": "Требование изменения статуса после подтверждения есть, но возможность и допустимость выполнения через CRM не установлены.",
+        "question": "Какой интерфейс и сервисные права позволят после подтверждения оператора перевести карточку из «новое» в «обработано», и на каких тестовых данных это проверить?",
+        "field_ids": [
+          "agent_actions",
+          "human_control",
+          "access_rights",
+          "integrations",
+          "data_sources"
+        ],
+        "upstream_finding_ids": [
+          "access_rights.f1",
+          "integrations.f1",
+          "data_sources.f1"
+        ],
+        "evidence_ids": [
+          "agent_actions.e1",
+          "human_control.e1",
+          "access_rights.e1",
+          "integrations.e1",
+          "data_sources.e1"
+        ],
+        "affected_fields": [
+          "integrations",
+          "access_rights",
+          "acceptance",
+          "implementation_maturity"
+        ],
+        "impact": "Подтверждение человеком не даёт технических прав. Пока неизвестны интерфейс и разрешения, нельзя подтвердить реализацию обязательного действия или проверить его на предоставленных данных."
+      },
+      {
+        "id": "synthesis.f2",
+        "kind": "cross_section",
+        "severity": "major",
+        "statement": "Критерии полезности и приёмки не согласованы, а полнота и актуальность инструкций не проверены.",
+        "question": "Какой результат считается успешным, на какой выборке обращений он проверяется и как подтверждается пригодность инструкций?",
+        "field_ids": [
+          "expected_outcome",
+          "acceptance",
+          "data_quality"
+        ],
+        "upstream_finding_ids": [
+          "expected_outcome.f1",
+          "acceptance.f1",
+          "data_quality.f1"
+        ],
+        "evidence_ids": [
+          "expected_outcome.e2",
+          "acceptance.e1",
+          "data_quality.e1"
+        ],
+        "affected_fields": [
+          "acceptance",
+          "implementation_maturity"
+        ],
+        "impact": "Без согласованной проверки нельзя отличить полезный результат от правдоподобных ответов и подтвердить переносимость подхода."
+      },
+      {
+        "id": "synthesis.f3",
+        "kind": "cross_section",
+        "severity": "major",
+        "statement": "Локальный контур обязателен, но его ресурсы и условия производительности не заданы; учебный аналог пока не подтверждает достижимость.",
+        "question": "Какие ресурсы, нагрузка, задержка и доступность заданы и какое испытание проверит их совместимость с локальной моделью?",
+        "field_ids": [
+          "deployment",
+          "service_requirements",
+          "implementation_maturity"
+        ],
+        "upstream_finding_ids": [
+          "deployment.f1",
+          "service_requirements.f1",
+          "implementation_maturity.f1"
+        ],
+        "evidence_ids": [
+          "deployment.e1",
+          "service_requirements.e1",
+          "implementation_maturity.e1",
+          "implementation_maturity.e2"
+        ],
+        "affected_fields": [
+          "deployment",
+          "service_requirements",
+          "acceptance",
+          "implementation_maturity"
+        ],
+        "impact": "Сначала нужны условия измерения; наличие учебного стенда не доказывает требуемую скорость и качество в новом контуре."
+      },
+      {
+        "id": "synthesis.f4",
+        "kind": "local",
+        "severity": "major",
+        "statement": "Доступность участников фиксированной команды не согласована.",
+        "question": "Какую доступность на проект подтвердит каждый из трёх участников?",
+        "field_ids": [
+          "team_availability"
+        ],
+        "upstream_finding_ids": [
+          "team_availability.f1"
+        ],
+        "evidence_ids": [
+          "team_availability.e1"
+        ],
+        "affected_fields": [
+          "team_availability"
+        ],
+        "impact": "Нельзя перейти к планированию обязательств, опираясь только на состав и стаж; сроки и стоимость из этих данных не рассчитываются."
+      },
+      {
+        "id": "synthesis.f5",
+        "kind": "local",
+        "severity": "major",
+        "statement": "За эксплуатацию ассистента ещё никто не назначен.",
+        "question": "Кто принимает ответственность за эксплуатацию ассистента и действия при сбоях?",
+        "field_ids": [
+          "deployment"
+        ],
+        "upstream_finding_ids": [
+          "deployment.f2"
+        ],
+        "evidence_ids": [
+          "deployment.e2"
+        ],
+        "affected_fields": [
+          "deployment",
+          "service_requirements"
+        ],
+        "impact": "Ручная передача действия при ошибке описана, но ответственность за сам работающий сервис остаётся неизвестной."
+      }
+    ],
+    "maturity": [
+      {
+        "component": "Интеграция изменения статуса CRM",
+        "level": "undetermined",
+        "reason": "Операция задана, но описание API, права и подтверждённый опыт работы с этой CRM неизвестны. Синтетический учебный REST-пример не доказывает повторное внедрение и не доказывает необходимость поискового исследования.",
+        "field_ids": [
+          "agent_actions",
+          "integrations",
+          "access_rights",
+          "team_capabilities"
+        ],
+        "evidence_ids": [
+          "agent_actions.e1",
+          "integrations.e1",
+          "access_rights.e1",
+          "team_capabilities.e1"
+        ]
+      }
+    ],
+    "excluded_findings": []
+  }
+}

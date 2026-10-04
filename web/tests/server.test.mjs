@@ -73,6 +73,10 @@ test('unavailable API returns an explicit 502 response', async t => {
 test('static allowlist and API method restrictions remain enforced', async t => {
   const url = await listen(t, createWebServer());
   assert.equal((await fetch(url)).status, 200);
+  const design = await fetch(`${url}/document_design.md`);
+  assert.equal(design.status, 200);
+  assert.match(design.headers.get('content-type'), /text\/markdown/);
+  assert.match(await design.text(), /# AI Solution Copilot/);
   const head = await fetch(`${url}/app.js`, { method: 'HEAD' });
   assert.equal(head.status, 200);
   assert.equal(await head.text(), '');
@@ -83,4 +87,30 @@ test('static allowlist and API method restrictions remain enforced', async t => 
   assert.equal((await fetch(`${url}/api/start_process`)).status, 405);
   assert.equal((await fetch(`${url}/api/get_progress/test-job`, { method: 'POST' })).status, 405);
   assert.equal((await fetch(url, { method: 'POST' })).status, 405);
+});
+
+test('factory proxy uses its own upstream and preserves the legacy routes', async t => {
+  const calls = [];
+  const backend = kind => createServer((request, response) => {
+    calls.push({ kind, path: request.url, auth: request.headers.authorization });
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ kind }));
+  });
+  const apiUrl = await listen(t, backend('legacy'));
+  const factoryApiUrl = await listen(t, backend('factory'));
+  const url = await listen(t, createWebServer({ apiUrl, factoryApiUrl }));
+  const response = await fetch(`${url}/api/factory/get_result/test-job`, { headers: { Authorization: 'Basic test' } });
+  assert.deepEqual(await response.json(), { kind: 'factory' });
+  assert.deepEqual(calls[0], { kind: 'factory', path: '/get_result/test-job', auth: 'Basic test' });
+  await fetch(`${url}/api/get_questions/test-job?mode=both`);
+  assert.equal(calls[1].kind, 'legacy');
+  assert.equal((await fetch(`${url}/api/factory/start_process`)).status, 405);
+  assert.equal((await fetch(`${url}/api/factory/get_questions/test-job`)).status, 404);
+  assert.equal((await fetch(`${url}/api/factory/.env`)).status, 404);
+});
+
+test('factory upstream rejects credentials and paths', () => {
+  for (const factoryApiUrl of ['http://user:secret@localhost', 'http://localhost/internal', 'file:///etc/passwd']) {
+    assert.throws(() => createWebServer({ factoryApiUrl }), /HTTP\(S\)/);
+  }
 });

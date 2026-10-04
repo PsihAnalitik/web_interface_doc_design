@@ -4,3 +4,5 @@
 @media(pointer:coarse){.button,.like,.questions-table .like{min-height:44px}.like,.questions-table .like{min-width:44px}.questions-table td:first-child{padding-left:4px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 .access-panel{max-width:720px;margin:0 auto 28px;display:flex;flex-wrap:wrap;gap:12px 20px;padding:16px 20px;background:var(--soft);border-radius:8px}.access-panel>div{flex:1 1 220px;min-width:0}.access-panel .field-label{margin:0 0 6px}.access-panel input{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--text)}.access-panel p{flex-basis:100%;margin:0}
+
+#engine{width:100%;padding:12px;margin-bottom:22px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text)}.severity{font-size:12px;font-weight:600}.evidence{font-size:12px;margin-top:12px}.evidence summary{cursor:pointer}.evidence blockquote{margin:8px 0;padding:8px;border-left:2px solid var(--line);white-space:pre-wrap;overflow-wrap:anywhere}

@@ -1,12 +1,12 @@
 import { extension, fileSize, validateFile, normalizeResult, mergePartialResult, selectedText, selectAll, QUESTION_GROUPS } from './model.js';
-import { analyzeDocument, serviceNotice } from './analysis.js';
+import { analyzeDocument, serviceNotice, factoryNotice } from './analysis.js';
 import { demoResult } from './demo.js';
 
 const byId = id => document.getElementById(id);
 const copyButtons = [...document.querySelectorAll('.copy')];
 const state = {
   files: [], reading: false, running: false, result: null,
-  selected: new Set(), mode: null, replacementId: null, run: 0, processId: null,
+  selected: new Set(), mode: null, replacementId: null, run: 0, processId: null, engine: 'case-finder',
 };
 
 function element(tag, text, className) {
@@ -18,18 +18,25 @@ function element(tag, text, className) {
 
 function updateForm() {
   const locked = state.reading || state.running;
-  const ready = Boolean(byId('description').value.trim() || state.files.length);
+  const factory = state.engine === 'factory';
+  byId('factory-scope').hidden = !factory;
+  const ready = factory ? state.files.length > 0 && state.files.every(entry => extension(entry.file.name) === 'md') : Boolean(byId('description').value.trim() || state.files.length);
+  byId('engine').disabled = locked || Boolean(state.processId);
+  byId('files').accept = byId('replacement').accept = factory ? '.md' : '.md,.docx,.pdf,.txt';
+  byId('service-note').textContent = factory ? factoryNotice : serviceNotice;
+  byId('engine-description').textContent = factory ? 'Загрузите Markdown-документы: фабрика проверит разделы паспорта, их связи и подготовит замечания с основаниями.' : 'Добавьте описание задачи или документы, чтобы получить два набора по 20 вопросов: по вашим материалам и с учётом похожих кейсов.';
+  byId('file-hint').textContent = factory ? 'Только MD · до 30 МБ на файл в браузере. Лимиты сервера проверяются при загрузке. PDF и DOCX предварительно переведите в Markdown.' : 'MD, DOCX, PDF, TXT · до 30 МБ на файл в браузере. Сервер по умолчанию: 10 файлов, 20 МБ на файл, 100 МБ суммарно. PDF с текстовым слоем, без сканов.';
   byId('analyze').disabled = locked || !ready;
   byId('example').disabled = locked;
   byId('files').disabled = locked;
   byId('replacement').disabled = locked;
-  byId('description').disabled = locked;
+  byId('description').disabled = locked || factory;
   byId('api-username').disabled = locked;
   byId('api-password').disabled = locked;
   byId('dropzone').setAttribute('aria-disabled', String(locked));
   document.querySelectorAll('.file-actions button').forEach(button => { button.disabled = locked; });
   byId('ready-status').textContent = state.reading ? 'Проверяем выбранные файлы…'
-    : ready ? 'Материалы готовы к отправке на анализ.' : 'Добавьте текст или хотя бы один документ.';
+    : ready ? 'Материалы готовы к отправке на анализ.' : factory ? 'Загрузите документы об AI-агентах в формате .md.' : 'Добавьте текст или хотя бы один документ.';
 }
 
 function renderFiles() {
@@ -72,7 +79,7 @@ async function addFiles(files, replacementId = null) {
   const errors = [];
   try {
     for (const file of files) {
-      const error = await validateFile(file);
+      const error = await validateFile(file, state.engine);
       if (error) { errors.push(`${file.name}: ${error}`); continue; }
       const entry = { id: crypto.randomUUID(), file };
       if (replacementId) {
@@ -133,6 +140,17 @@ function renderResult() {
     const counts = Object.entries(QUESTION_GROUPS).map(([group, label]) => `${label}: ${result.questions.filter(question => question.group === group).length}`);
     byId('result-note').textContent = `${counts.join(' · ')}. Резюме, подсистемы, текущее понимание и обоснования не предоставляются текущим API.`;
   }
+  if (result.kind === 'factory') {
+    byId('result-note').hidden = false;
+    byId('result-note').textContent = result.questions.length ? `Фабрика: ${result.questions.length} замечаний. Количество определяется анализом документа.` : result.status === 'complete' ? 'Анализ завершён: замечаний не сформировано.' : 'Частичный результат: итоговые замечания пока не сформированы.';
+  }
+  byId('maturity-section').hidden = !result.maturity?.length;
+  byId('maturity-list').replaceChildren(...(result.maturity || []).map(item => {
+    const block = element('p');
+    const level = { repeat_deployment: 'Повторное внедрение', known_approach: 'Известный подход', experiment: 'Эксперимент', research: 'Исследование', undetermined: 'Не определено' }[item.level] || item.level;
+    block.append(element('strong', `${item.component} — ${level}. `), document.createTextNode(item.reason));
+    return block;
+  }));
   byId('questions-section').hidden = !result.questions.length;
   byId('question-count').textContent = result.questions.length;
   const body = byId('questions');
@@ -155,6 +173,16 @@ function renderResult() {
     const title = element('h3', undefined, 'question-title');
     title.append(element('span', `${String(index + 1).padStart(2, '0')}. `, 'question-number'), document.createTextNode(question.text));
     questionCell.append(title, element('span', QUESTION_GROUPS[question.group] || question.subsystem || 'Подсистема не указана', 'subsystem'));
+    if (question.severity) questionCell.append(element('p', `Важность: ${{ critical: 'Критическая', major: 'Высокая', minor: 'Низкая' }[question.severity] || question.severity}`, 'severity'));
+    if (question.affected_fields?.length) questionCell.append(element('p', `Влияет на: ${question.affected_fields.join(', ')}`, 'small'));
+    if (question.evidence?.length) {
+      const details = element('details', undefined, 'evidence');
+      details.append(element('summary', `Основания в документе (${question.evidence.length})`));
+      for (const ref of question.evidence) {
+        details.append(element('p', `${ref.source_id}, строки ${ref.start_line}–${ref.end_line}`), element('blockquote', ref.text));
+      }
+      questionCell.append(details);
+    }
     row.append(controlCell, questionCell);
     for (const [label, value] of [['ТЕКУЩЕЕ ПОНИМАНИЕ', question.understanding], ['ПОЧЕМУ ЭТО ВАЖНО', question.importance]]) {
       const cell = element('td', undefined, 'detail-cell');
@@ -191,7 +219,12 @@ async function startAnalysis(mode) {
   if (mode !== 'demo' && !byId('description').value.trim() && !state.files.length) return;
   if (mode !== 'demo' && !byId('credentials-form').reportValidity()) return;
   const run = ++state.run;
-  const input = { text: byId('description').value.trim(), files: state.files.map(entry => entry.file) };
+  if (mode !== 'demo' && state.engine === 'factory' && (!state.files.length || state.files.some(entry => extension(entry.file.name) !== 'md'))) {
+    byId('file-errors').textContent = 'Для фабрики загрузите только Markdown-файлы (.md).';
+    byId('file-errors').hidden = false;
+    return;
+  }
+  const input = { text: state.engine === 'factory' ? '' : byId('description').value.trim(), files: state.files.map(entry => entry.file) };
   state.mode = mode;
   state.running = true;
   state.result = null;
@@ -199,6 +232,7 @@ async function startAnalysis(mode) {
   byId('input-screen').hidden = true;
   byId('analysis-screen').hidden = false;
   byId('summary-section').hidden = true;
+  byId('maturity-section').hidden = true;
   byId('questions-section').hidden = true;
   byId('result-note').hidden = true;
   byId('analysis-error').hidden = true;
@@ -227,6 +261,7 @@ async function startAnalysis(mode) {
     } else {
       const result = await analyzeDocument({
         ...input,
+        engine: state.engine,
         username: byId('api-username').value,
         password: byId('api-password').value,
         processId: state.processId,
@@ -291,6 +326,11 @@ byId('credentials-form').addEventListener('submit', event => event.preventDefaul
 byId('description').addEventListener('input', updateForm);
 byId('analysis-form').addEventListener('submit', event => { event.preventDefault(); void startAnalysis('service'); });
 byId('example').addEventListener('click', () => void startAnalysis('demo'));
+byId('engine').addEventListener('change', () => {
+  if (state.running || state.reading || state.processId) { byId('engine').value = state.engine; return; }
+  state.engine = byId('engine').value;
+  updateForm();
+});
 byId('retry').addEventListener('click', () => void startAnalysis(state.mode));
 byId('files').addEventListener('change', event => {
   void addFiles([...event.target.files]);
@@ -323,6 +363,7 @@ byId('revise').addEventListener('click', () => {
   state.processId = null;
   state.selected.clear();
   byId('analysis-form').reset();
+  byId('engine').value = state.engine;
   byId('file-errors').hidden = true;
   byId('analysis-screen').hidden = true;
   byId('input-screen').hidden = false;

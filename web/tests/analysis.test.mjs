@@ -124,3 +124,39 @@ test('malformed JSON and invalid job status are explicit errors', async t => {
   mockFetch(t, [started(), json({ status: 'unknown' })]);
   await assert.rejects(analyzeDocument(input), /Неизвестный статус/);
 });
+
+test('factory uploads only Markdown files without legacy fields and reads factory result', async t => {
+  const payload = { kind: 'factory', status: 'complete', summary: ['Обзор'], questions: [], maturity: [] };
+  const calls = mockFetch(t, [started(), done(), json(payload)]);
+  const result = await analyzeDocument({ ...input, text: '', files: [new File(['# Проект'], 'task.md')], engine: 'factory' });
+  assert.deepEqual(calls.map(call => call.url), ['/api/factory/start_process', '/api/factory/get_progress/job-123', '/api/factory/get_result/job-123']);
+  const body = calls[0].options.body;
+  assert.equal(body.has('text'), false);
+  assert.equal(body.has('question_count'), false);
+  assert.equal(body.get('files').name, 'task.md');
+  assert.deepEqual(result, payload);
+});
+
+test('factory rejects pasted text and non-Markdown files before upload', async t => {
+  const calls = mockFetch(t, []);
+  for (const override of [{ text: 'Проект', files: [] }, { text: '', files: [new File(['text'], 'task.txt')] }, { text: '', files: [] }]) {
+    await assert.rejects(analyzeDocument({ ...input, engine: 'factory', ...override }), /Markdown/);
+  }
+  assert.equal(calls.length, 0);
+});
+
+test('factory failure retrieves partial result, while absent result remains an error', async t => {
+  const partial = { status: 'partial', summary: ['Доступная часть'], questions: [] };
+  mockFetch(t, [json({ status: 'failed' }), json(partial)]);
+  assert.deepEqual(await analyzeDocument({ ...input, engine: 'factory', processId: 'job-123' }), { ...partial, kind: 'factory' });
+  mockFetch(t, [json({ status: 'failed' }), json({ detail: 'No partial result' }, 409)]);
+  await assert.rejects(analyzeDocument({ ...input, engine: 'factory', processId: 'job-123' }), error => error.processId === null && /No partial result/.test(error.message));
+});
+
+test('factory resumes existing job without uploading again and polls running', async t => {
+  const calls = mockFetch(t, [json({ status: 'running', progress: 40 }), done(), json({ status: 'complete', summary: [], questions: [] })]);
+  t.mock.method(globalThis, 'setTimeout', callback => queueMicrotask(callback));
+  await analyzeDocument({ ...input, engine: 'factory', processId: 'job-123' });
+  assert.equal(calls.some(call => call.options.method === 'POST'), false);
+  assert.ok(calls.every(call => call.url.startsWith('/api/factory/')));
+});
