@@ -20,6 +20,7 @@ function updateForm() {
   const locked = state.reading || state.running;
   const factory = state.engine === 'factory';
   byId('factory-scope').hidden = !factory;
+  byId('factory-design-document').hidden = !factory;
   const ready = factory ? state.files.length > 0 && state.files.every(entry => extension(entry.file.name) === 'md') : Boolean(byId('description').value.trim() || state.files.length);
   byId('engine').disabled = locked || Boolean(state.processId);
   byId('files').accept = byId('replacement').accept = factory ? '.md' : '.md,.docx,.pdf,.txt';

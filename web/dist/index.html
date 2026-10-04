@@ -37,7 +37,7 @@
         <label class="field-label" for="engine">Способ анализа</label>
         <select id="engine" name="engine"><option value="case-finder">Case Finder — вопросы без аналогов и с аналогами</option><option value="factory">Агентская фабрика — разделы паспорта и их связи</option></select>
         <p id="factory-scope" class="notice" hidden>Фабрика предназначена только для документов по тематике AI-агентов: LLM-ассистентов и агентских систем. Другие ИИ-домены не входят в её экспертизу. Вход — только Markdown (.md).</p>
-        <p class="small"><a href="/document_design.md" download="AI-Solution-Copilot.md">Скачать дизайн-документ проекта (.md)</a> — описание ограничений и методики; его можно загрузить для пробного анализа.</p>
+        <p id="factory-design-document" class="small" hidden><a href="/document_design.md" download="AI-Solution-Copilot.md">Скачать дизайн-документ проекта (.md)</a> — описание ограничений и методики; его можно загрузить для пробного анализа.</p>
         <label class="field-label" for="description">Что нужно разработать? <span>необязательно, если есть файлы</span></label>
         <textarea id="description" name="description" rows="5" placeholder="Опишите задачу или вставьте текст технического задания…"></textarea>
         <div class="dropzone" id="dropzone">
