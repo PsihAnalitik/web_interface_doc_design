@@ -11,8 +11,6 @@ import time
 
 from app.job_store import JobStore
 
-from .catalog import FIELDS
-
 logger = logging.getLogger(__name__)
 INTERRUPTED = "Анализ прерван перезапуском сервиса; автоматический повтор отключён."
 DOCUMENT_REJECTED = (
@@ -79,7 +77,9 @@ def project_result(result: dict, run_dir: Path) -> dict | None:
         for field_id, verdict in result.get("verdicts", {}).items() for finding in verdict["findings"]]
     if not synthesis and not findings:
         return None
-    titles = {field.id: field.title for field in FIELDS}
+    passport_path = run_dir / "passport.json"
+    passport = json.loads(passport_path.read_text(encoding="utf-8")) if passport_path.exists() else {}
+    titles = {section["id"]: section["title"] for section in passport.get("sections", [])}
     questions = [{
         "id": finding["id"], "text": finding["question"],
         "subsystem": ", ".join(titles.get(field, field) for field in finding["field_ids"]),

@@ -7,7 +7,7 @@ import shutil
 import pytest
 from workshop.models import LLMParams
 
-from agent_factory_baseline.catalog import FIELDS
+from agent_factory_baseline.catalog import load_catalog
 from agent_factory_baseline.inputs import load_sources
 from agent_factory_baseline.knowledge import DEFAULT_WIKI, prepare_knowledge
 from agent_factory_baseline.passport import ProjectPassport
@@ -46,7 +46,7 @@ def test_all_nodes_receive_native_wiki_and_tools_and_passport(tmp_path, monkeypa
     assert len(knowledge['node_wiki_refs']) == 37
     assert len(knowledge['relations']) == 33
     assert all(v for v in knowledge['node_wiki_refs'].values())
-    for f in FIELDS:
+    for f in load_catalog().fields:
         assert all(c.id in (output / 'wiki/fields' / (f.id + '.md')).read_text() for c in f.checks)
         for kind in ('extract', 'verdict'):
             refs = knowledge['node_wiki_refs'][kind + '_' + f.id]
@@ -106,7 +106,7 @@ def test_synthetic_cases_cannot_become_project_evidence(tmp_path):
     data['cases'][0]['status'] = 'synthetic'
     registry.write_text(json.dumps(data))
     knowledge = prepare_knowledge(tmp_path / 'snapshot', wiki)
-    assert knowledge.case_sources(demo_sources(), FIELDS) == demo_sources()
+    assert knowledge.case_sources(demo_sources(), knowledge.catalog.fields) == demo_sources()
 
 
 def test_partial_passport_keeps_extractions_when_verdict_provider_fails(tmp_path):

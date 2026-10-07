@@ -17,7 +17,7 @@ from workshop.orchestrator import run_pipeline
 from workshop.result import Err, Ok
 from workshop.run_log import RunLog
 
-from .catalog import CATALOG_VERSION, FIELDS
+from .catalog import load_catalog
 from .inputs import Source, wire_json
 from .knowledge import DEFAULT_WIKI, Knowledge, prepare_knowledge
 from .models import Extraction, FieldVerdict, Synthesis
@@ -33,11 +33,12 @@ def write_json(path: Path, value: object) -> None:
 
 
 def build_graph(output: Path, sources: dict[str, Source], params: LLMParams,
-                max_iterations: int = 3, fields=FIELDS,
+                max_iterations: int = 3, fields=None,
                 verdict_params: LLMParams | None = None,
                 knowledge: Knowledge | None = None) -> GraphConfig:
     """Create each field's extraction/verdict pair plus a final evidence-aware synthesis."""
     knowledge = knowledge or prepare_knowledge(output, DEFAULT_WIKI, fields)
+    fields = knowledge.catalog.fields if fields is None else fields
     directory = output / "config"
     directory.mkdir()
     stage_map = directory / "stage_map.md"
@@ -57,7 +58,7 @@ def build_graph(output: Path, sources: dict[str, Source], params: LLMParams,
         if kind != "extract":
             context["relation_rules"] = [r.model_dump() for r in knowledge.relations.rules
                 if field_id is None or field_id in {r.source, r.target}]
-        context.update({"catalog_version": CATALOG_VERSION,
+        context.update({"catalog_version": knowledge.catalog.version,
                         "sources": [s.metadata() for s in sources.values()]})
         template = (PACKAGE / "prompts" / f"{kind}.md").read_text(encoding="utf-8")
         prompt = template.replace("@@SCHEMA@@", wire_json(SCHEMAS[kind].model_json_schema()))
@@ -81,8 +82,9 @@ def build_graph(output: Path, sources: dict[str, Source], params: LLMParams,
 class ValidationGate:
     """Programmatic acceptance, NOT an expert approval, using the factory's bounded rework."""
 
-    def __init__(self, sources: dict[str, Source], fields=FIELDS):
+    def __init__(self, sources: dict[str, Source], fields=None):
         self.sources = sources
+        fields = load_catalog().fields if fields is None else fields
         self.fields = {f.id: f for f in fields}
         self.extractions: dict[str, Extraction] = {}
         self.verdicts: dict[str, FieldVerdict] = {}
@@ -259,12 +261,13 @@ def render_report(result: dict, sources: dict[str, Source] | None = None) -> str
 
 
 def execute(sources: dict[str, Source], output: Path, params: LLMParams, llm=None,
-            mode: str = "live", max_iterations: int = 3, fields=FIELDS,
+            mode: str = "live", max_iterations: int = 3, fields=None,
             verdict_params: LLMParams | None = None, wiki_root: Path | None = None) -> dict:
     """Run native workflow_ai. A new directory owns each run; no resume/overwrite."""
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=False, mode=0o700)
     knowledge = prepare_knowledge(output, wiki_root or DEFAULT_WIKI, fields)
+    fields = knowledge.catalog.fields if fields is None else fields
     sources = knowledge.case_sources(sources, fields)
     (output / "sources").mkdir()
     for source in sources.values():
@@ -283,7 +286,7 @@ def execute(sources: dict[str, Source], output: Path, params: LLMParams, llm=Non
     write_json(output / "passport.schema.json", ProjectPassport.model_json_schema())
     configuration = {p.name: sha256(p.read_bytes()).hexdigest()
                      for p in sorted((output / "config").iterdir())}
-    manifest = {"schema_version": "baseline.v0.1", "catalog_version": CATALOG_VERSION,
+    manifest = {"schema_version": "baseline.v0.1", "catalog_version": knowledge.catalog.version,
                 "mode": mode, "status": "planned" if mode == "plan" else "running",
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "factory": factory_revision(), "model": params.model_dump(),
@@ -306,7 +309,7 @@ def execute(sources: dict[str, Source], output: Path, params: LLMParams, llm=Non
         raise ValueError("A model client or explicit replay client is required")
     gate = ValidationGate(sources, fields)
     client = RecordingLLM(llm, output / "calls.jsonl", gate)
-    result = {"schema_version": "baseline.v0.1", "catalog_version": CATALOG_VERSION,
+    result = {"schema_version": "baseline.v0.1", "catalog_version": knowledge.catalog.version,
               "mode": mode, "status": "interrupted", "error": None,
               "extractions": {}, "verdicts": {}, "synthesis": None}
     started = time.monotonic()

@@ -249,3 +249,21 @@ def test_worker_reports_distinct_public_failures(setup, monkeypatch):
 
     limited = fail(error="NODE_FAILED: LLM_FAILED: PROVIDER_ERROR: Error code: 429 rate_limit_exceeded")
     assert store.read_status(limited)["error"]["code"] == "pipeline_failed"
+
+
+@pytest.mark.parametrize("with_passport", [True, False])
+def test_web_projection_uses_saved_titles_or_legacy_ids(tmp_path, with_passport):
+    result = {"status": "completed", "extractions": {}, "synthesis": {
+        "summary": "Summary", "maturity": [], "findings": [{
+            "id": "f1", "field_ids": ["users"], "affected_fields": ["integrations"],
+            "question": "Question?", "statement": "Unknown", "severity": "major", "evidence_ids": [],
+        }],
+    }}
+    if with_passport:
+        (tmp_path / "passport.json").write_text(json.dumps({"sections": [
+            {"id": "users", "title": "Историческое название"},
+            {"id": "integrations", "title": "Исторические интеграции"},
+        ]}))
+    projected = web_worker.project_result(result, tmp_path)["questions"][0]
+    assert projected["subsystem"] == ("Историческое название" if with_passport else "users")
+    assert projected["affected_fields"] == (["Исторические интеграции"] if with_passport else ["integrations"])

@@ -9,11 +9,9 @@ from pydantic import Field
 from workshop.result import Err
 from workshop.wiki_loader import build_bundle
 
-from .catalog import FIELDS
+from .catalog import Catalog, DEFAULT_WIKI, catalog_from_pages
 from .inputs import Source
 from .models import Payload, Text
-
-DEFAULT_WIKI = Path(__file__).resolve().parent / 'wiki'
 
 
 class RelationRule(Payload):
@@ -51,6 +49,7 @@ class Knowledge:
     pages: dict[str, str]
     relations: RelationCatalog
     cases: CaseRegistry
+    catalog: Catalog
 
     def refs(self, kind: str, field_id: str | None = None) -> list[dict]:
         paths = ['methodology/evidence.md', 'domains/llm-agents.md']
@@ -79,7 +78,7 @@ class Knowledge:
         return result
 
 
-def prepare_knowledge(output: Path, root: Path, fields=FIELDS) -> Knowledge:
+def prepare_knowledge(output: Path, root: Path, fields=None) -> Knowledge:
     """Validate, then freeze knowledge; use native bundle loading, not a second retriever."""
     root = root.resolve(strict=True)
     pages = {}
@@ -98,7 +97,9 @@ def prepare_knowledge(output: Path, root: Path, fields=FIELDS) -> Knowledge:
             pages[relative] = sha256(text.encode()).hexdigest()
     required = {'index.md', 'methodology/evidence.md', 'methodology/relations.md',
                 'domains/llm-agents.md', 'cases/index.md', 'passport.md'}
-    known_ids = {f.id for f in FIELDS}
+    catalog = catalog_from_pages(contents)
+    fields = catalog.fields if fields is None else fields
+    known_ids = {f.id for f in catalog.fields}
     required |= {f'fields/{f.id}.md' for f in fields if f.id in known_ids}
     missing = required - pages.keys()
     if missing:
@@ -108,7 +109,7 @@ def prepare_knowledge(output: Path, root: Path, fields=FIELDS) -> Knowledge:
         cases = CaseRegistry.model_validate_json(contents['cases/registry.json'])
     except KeyError as exc:
         raise ValueError(f'Missing wiki registry: {exc.args[0]}') from exc
-    expected = {(source, f.id) for f in FIELDS for source in f.depends_on}
+    expected = {(source, f.id) for f in catalog.fields for source in f.depends_on}
     actual = {(r.source, r.target) for r in relations.rules}
     if actual != expected or len(actual) != len(relations.rules):
         raise ValueError('Wiki relation rules must cover catalog dependencies exactly once')
@@ -122,7 +123,7 @@ def prepare_knowledge(output: Path, root: Path, fields=FIELDS) -> Knowledge:
                 or not all(c.isalnum() or c in '_-' for c in case.id)):
             raise ValueError(f'Invalid wiki case registration: {case.id}')
     # Generated views share canonical identifiers and cannot silently drift from the catalog.
-    lines = ['# Каталог полей и проверок', '', 'Сгенерировано из catalog.py; редактировать следует каталог.', '']
+    lines = ['# Каталог полей и проверок', '', 'Сгенерировано из Markdown цехов; редактировать следует fields/*.md и index.md.', '']
     for f in fields:
         lines += [f'## {f.id} — {f.title}', '', f'Зависит от: {", ".join(f.depends_on) or "—"}', '']
         for c in f.checks:
@@ -142,7 +143,7 @@ def prepare_knowledge(output: Path, root: Path, fields=FIELDS) -> Knowledge:
         target.write_text(text, encoding='utf-8')
         if target.suffix == '.md':
             pages[relative] = sha256(text.encode()).hexdigest()
-    knowledge = Knowledge(snapshot, pages, relations, cases)
+    knowledge = Knowledge(snapshot, pages, relations, cases, catalog)
     for kind, field_id in [('extract', f.id) for f in fields] + [('verdict', f.id) for f in fields] + [('synthesis', None)]:
         bundle = build_bundle(Path('.'), [r['path'] for r in knowledge.refs(kind, field_id)])
         if isinstance(bundle, Err):

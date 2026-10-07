@@ -7,7 +7,7 @@ from workshop.llm_client import LLMResponse
 from workshop.models import LLMParams
 from workshop.result import Err, Ok
 
-from agent_factory_baseline.catalog import Check, PassportField, FIELDS
+from agent_factory_baseline.catalog import Check, PassportField, load_catalog
 from agent_factory_baseline.inputs import load_sources
 from agent_factory_baseline.runtime import PACKAGE, ReplayLLM, execute
 
@@ -113,7 +113,7 @@ def test_full_demo_through_launcher(tmp_path):
     assert command.returncode == 0, command.stderr + command.stdout
     result = json.loads((tmp_path / "demo/result.json").read_text())
     assert result["status"] == "completed"
-    assert len(result["extractions"]) == len(result["verdicts"]) == len(FIELDS) == 18
+    assert len(result["extractions"]) == len(result["verdicts"]) == len(load_catalog().fields) == 18
     assert result["synthesis"]["findings"]
 
 
