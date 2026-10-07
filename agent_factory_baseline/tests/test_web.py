@@ -5,11 +5,14 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "case-finder-main/server"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "vendor/workflow_ai"))
 
 import pytest
 from fastapi.testclient import TestClient
 from app.config import Settings
 from app.job_store import JobStore
+from workshop.llm_client import MODEL_UNAVAILABLE, PROVIDER_ERROR, PROVIDER_QUOTA, classify_provider_failure
+
 from agent_factory_baseline import web_api, web_worker
 
 
@@ -58,7 +61,11 @@ def test_auth_start_progress_result(setup):
 ])
 def test_reject_uploads(setup, files, data, code):
     client, store = setup
-    assert client.post("/start_process", files=files, data=data).status_code == code
+    response = client.post("/start_process", files=files, data=data)
+    assert response.status_code == code
+    if code == 422:
+        assert response.json()["detail"]["code"] == "document_rejected"
+        assert response.json()["detail"]["message"]
     assert not list(store.pending_dir.iterdir())
 
 
@@ -118,12 +125,15 @@ def test_worker_exception_redacted_and_restart_no_requeue(setup, monkeypatch):
         raise RuntimeError("secret-token /private/path")
     monkeypatch.setattr(web_worker, "run_factory", run)
     web_worker.process_job(store, pid)
-    assert "secret" not in json.dumps(store.read_status(pid))
+    status = store.read_status(pid)
+    assert "secret" not in json.dumps(status)
+    assert status["error"]["code"] == "pipeline_failed"
     interrupted = upload(client)
     store.claim_next()
     store.update_status(interrupted, "running", 5)
     web_worker.recover_interrupted(store)
     assert store.read_status(interrupted)["status"] == "failed"
+    assert store.read_status(interrupted)["error"]["code"] == "interrupted"
     assert store.claim_next() is None
     assert not list(store.running_dir.iterdir())
 
@@ -165,3 +175,77 @@ def test_nonzero_exit_cannot_mark_completed(setup, monkeypatch):
     web_worker.process_job(store, pid)
     assert store.read_status(pid)["status"] == "failed"
     assert client.get(f"/get_result/{pid}").json()["status"] == "partial"
+
+
+@pytest.mark.parametrize("status,code,expected", [
+    (404, "model_not_found", MODEL_UNAVAILABLE),
+    (404, None, MODEL_UNAVAILABLE),
+    (400, "model_not_found", MODEL_UNAVAILABLE),
+    (402, None, PROVIDER_QUOTA),
+    (429, "insufficient_quota", PROVIDER_QUOTA),
+    (429, "billing_hard_limit_reached", PROVIDER_QUOTA),
+    (429, "rate_limit_exceeded", PROVIDER_ERROR),
+    (500, None, PROVIDER_ERROR),
+    (401, "invalid_api_key", PROVIDER_ERROR),
+])
+def test_classify_provider_failure(status, code, expected):
+    assert classify_provider_failure(status, code) == expected
+
+
+def test_worker_reports_distinct_public_failures(setup, monkeypatch):
+    client, store = setup
+
+    def fail(error="", log="", findings=False):
+        pid = upload(client)
+        store.claim_next()
+
+        def run(documents, output, log_path):
+            log_path.write_text(log, encoding="utf-8")
+            if findings or error:
+                if findings:
+                    fake_result(output, status="failed", synthesis=False)
+                    result = json.loads((output / "result.json").read_text(encoding="utf-8"))
+                else:
+                    output.mkdir(parents=True)
+                    result = {"status": "failed", "extractions": {}, "verdicts": {}, "synthesis": None}
+                result["error"] = error or None
+                (output / "result.json").write_text(json.dumps(result), encoding="utf-8")
+            return 1
+
+        monkeypatch.setattr(web_worker, "run_factory", run)
+        web_worker.process_job(store, pid)
+        return pid
+
+    document = fail(log="Ошибка: Visual/embedded content in 001.md; prepare text-only Markdown first")
+    document_status = store.read_status(document)
+    document_body = client.get(f"/get_result/{document}")
+    assert document_status["error"]["code"] == "document_rejected"
+    assert document_body.status_code == 409
+    assert document_body.json()["detail"] == document_status["error"]
+    assert "001.md" not in document_status["error"]["message"]
+
+    model = fail(error="NODE_FAILED: extract_acceptance: LLM_FAILED: MODEL_UNAVAILABLE: model `secret-model` model_not_found")
+    model_error = store.read_status(model)["error"]
+    assert model_error["code"] == "model_unavailable"
+    assert client.get(f"/get_result/{model}").json()["detail"] == model_error
+    assert "secret-model" not in json.dumps(model_error)
+
+    quota = fail(
+        error="NODE_FAILED: extract_acceptance: LLM_FAILED: PROVIDER_QUOTA: Error code: 402 insufficient_quota",
+        findings=True,
+    )
+    quota_status = store.read_status(quota)["error"]
+    quota_result = client.get(f"/get_result/{quota}")
+    assert quota_status["code"] == "provider_quota"
+    assert quota_result.status_code == 200
+    assert quota_result.json()["status"] == "partial"
+    assert quota_result.json()["error"] == quota_status
+    assert quota_result.json()["message"] == quota_status["message"]
+    assert "insufficient_quota" not in quota_status["message"]
+
+    pipeline = fail(error="SYNTHESIS_MISSING")
+    assert store.read_status(pipeline)["error"]["code"] == "pipeline_failed"
+    assert client.get(f"/get_result/{pipeline}").json()["detail"]["code"] == "pipeline_failed"
+
+    limited = fail(error="NODE_FAILED: LLM_FAILED: PROVIDER_ERROR: Error code: 429 rate_limit_exceeded")
+    assert store.read_status(limited)["error"]["code"] == "pipeline_failed"

@@ -69,8 +69,8 @@ test('factory adapter → proxy → real API → worker with deterministic execu
 
   await assert.rejects(analyzeDocument({ ...input, password: 'wrong-password' }), /Неверный логин/);
   await assert.rejects(analyzeDocument({ ...input, files: [new File(['broken'], 'broken.pdf')] }), /Markdown/);
-  await assert.rejects(analyzeDocument({ ...input, files: [new File(['  '], 'empty.md')] }), /422/);
-  await assert.rejects(analyzeDocument({ ...input, files: [new File([new Uint8Array([255])], 'invalid.md')] }), /422/);
+  await assert.rejects(analyzeDocument({ ...input, files: [new File(['  '], 'empty.md')] }), error => error.code === 'document_rejected' && /непустой текст Markdown/.test(error.message));
+  await assert.rejects(analyzeDocument({ ...input, files: [new File([new Uint8Array([255])], 'invalid.md')] }), error => error.code === 'document_rejected' && /UTF-8/.test(error.message));
   const body = new FormData();
   body.append('files', new File(['not markdown'], 'bypass.pdf'));
   const invalid = await realFetch(`${origin}/api/factory/start_process`, {

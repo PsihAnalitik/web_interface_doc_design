@@ -12,8 +12,30 @@ from workshop.models import LLMParams
 from workshop.result import Err, Ok, Result
 
 PROVIDER_ERROR = "PROVIDER_ERROR"
+MODEL_UNAVAILABLE = "MODEL_UNAVAILABLE"
+PROVIDER_QUOTA = "PROVIDER_QUOTA"
 TIMEOUT = "TIMEOUT"
 TOOL_LOOP_EXCEEDED = "TOOL_LOOP_EXCEEDED"
+
+_QUOTA_CODES = frozenset({
+    "insufficient_quota",
+    "billing_not_active",
+    "billing_hard_limit_reached",
+})
+
+
+def classify_provider_failure(status_code: int | None, error_code: str | None) -> str:
+    """Map an HTTP status and provider error code to a stable failure code.
+
+    A plain 429 rate limit stays PROVIDER_ERROR. Quota and billing limits do not.
+    """
+    code = error_code.strip().lower() if isinstance(error_code, str) else ""
+    if status_code == 404 or code == "model_not_found":
+        return MODEL_UNAVAILABLE
+    quota = code in _QUOTA_CODES or "billing" in code
+    if status_code == 402 or (status_code == 429 and quota):
+        return PROVIDER_QUOTA
+    return PROVIDER_ERROR
 
 
 @dataclass(frozen=True)

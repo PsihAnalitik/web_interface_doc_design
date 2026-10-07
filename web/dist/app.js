@@ -1,5 +1,5 @@
 import { extension, fileSize, validateFile, normalizeResult, mergePartialResult, selectedText, selectAll, QUESTION_GROUPS } from './model.js';
-import { analyzeDocument, serviceNotice, factoryNotice } from './analysis.js';
+import { analyzeDocument, serviceNotice, factoryNotice, factoryErrorHeading } from './analysis.js';
 import { demoResult } from './demo.js';
 
 const byId = id => document.getElementById(id);
@@ -282,7 +282,7 @@ async function startAnalysis(mode) {
     }
     setStatus(state.result.status);
     if (state.result.status === 'partial') {
-      showError('Получен частичный результат', state.result.message || 'Часть данных не получена. Доступные вопросы можно выбрать и скопировать. Повторите обработку, чтобы получить полный результат.');
+      showError(factoryErrorHeading(state.result.error?.code) || 'Получен частичный результат', state.result.message || 'Часть данных не получена. Доступные вопросы можно выбрать и скопировать. Повторите обработку, чтобы получить полный результат.');
     }
   } catch (error) {
     if (run !== state.run) return;
@@ -290,7 +290,8 @@ async function startAnalysis(mode) {
     const partial = Boolean(state.result);
     state.processId = error.processId || null;
     setStatus(partial ? 'partial' : 'error');
-    showError(partial ? 'Обработка прервалась. Частичный результат сохранён.' : 'Не удалось выполнить анализ', error instanceof Error ? error.message : 'Произошла ошибка. Повторите обработку.');
+    const fallback = partial ? 'Обработка прервалась. Частичный результат сохранён.' : 'Не удалось выполнить анализ';
+    showError(factoryErrorHeading(error.code) || fallback, error instanceof Error ? error.message : 'Произошла ошибка. Повторите обработку.');
   } finally {
     if (run === state.run) {
       state.running = false;

@@ -51,7 +51,10 @@ services:
     build:
       context: ../..
       dockerfile: agent_factory_baseline/service/Dockerfile
-    env_file: ${CASE_FINDER_ENV_FILE:-.env}
+    # Later file wins: factory credentials override the shared Case Finder env.
+    env_file:
+      - ${CASE_FINDER_ENV_FILE:-.env}
+      - ${FACTORY_ENV_FILE:-../../agent_factory_baseline/.env}
     environment:
       FACTORY_STORAGE_PATH: /app/factory-storage
     command: ["python", "-m", "agent_factory_baseline.web_worker"]

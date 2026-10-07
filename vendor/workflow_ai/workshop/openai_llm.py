@@ -10,7 +10,7 @@ import json
 import os
 from typing import Sequence
 
-from openai import APITimeoutError, OpenAI, OpenAIError
+from openai import APIStatusError, APITimeoutError, OpenAI, OpenAIError
 
 from workshop.llm_client import (
     PROVIDER_ERROR,
@@ -18,6 +18,7 @@ from workshop.llm_client import (
     TOOL_LOOP_EXCEEDED,
     LLMResponse,
     ToolSpec,
+    classify_provider_failure,
 )
 from workshop.models import LLMParams
 from workshop.result import Err, Ok, Result
@@ -115,6 +116,8 @@ class OpenAILLM:
                 response = self._ensure_client().chat.completions.create(**request_kwargs)
             except APITimeoutError as exc:
                 return Err(TIMEOUT, str(exc))
+            except APIStatusError as exc:
+                return Err(classify_provider_failure(exc.status_code, exc.code), str(exc))
             except OpenAIError as exc:
                 return Err(PROVIDER_ERROR, str(exc))
 

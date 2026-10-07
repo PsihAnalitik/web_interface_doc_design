@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeDocument } from '../dist/analysis.js';
+import { analyzeDocument, factoryErrorHeading } from '../dist/analysis.js';
 
 const input = { text: 'Мой проект', files: [], username: 'tester', password: 'test-password' };
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -151,6 +151,40 @@ test('factory failure retrieves partial result, while absent result remains an e
   assert.deepEqual(await analyzeDocument({ ...input, engine: 'factory', processId: 'job-123' }), { ...partial, kind: 'factory' });
   mockFetch(t, [json({ status: 'failed' }), json({ detail: 'No partial result' }, 409)]);
   await assert.rejects(analyzeDocument({ ...input, engine: 'factory', processId: 'job-123' }), error => error.processId === null && /No partial result/.test(error.message));
+});
+
+test('factory classified failures keep their code and Russian message', async t => {
+  const cases = [
+    ['document_rejected', 'Фабрика принимает только текстовые файлы Markdown (.md).', 'Документ не подходит'],
+    ['model_unavailable', 'Настроенная модель провайдера недоступна. Анализ не начат. Обратитесь к администратору.', 'Модель провайдера недоступна'],
+    ['provider_quota', 'У провайдера модели закончился баланс или квота. Анализ остановлен. Обратитесь к администратору.', 'Закончился баланс провайдера'],
+    ['pipeline_failed', 'Анализ остановился из-за ошибки обработки. Повторите попытку.', 'Ошибка анализа'],
+  ];
+  for (const [code, message, title] of cases) {
+    mockFetch(t, [json({ status: 'failed' }), json({ detail: { code, message } }, 409)]);
+    await assert.rejects(analyzeDocument({ ...input, engine: 'factory', processId: 'job-123' }), error => {
+      assert.equal(error.processId, null);
+      assert.equal(error.code, code);
+      assert.equal(error.message, message);
+      assert.equal(error.message.includes('No usable'), false);
+      assert.equal(error.message.includes('Ошибка сервера'), false);
+      assert.equal(factoryErrorHeading(error.code), title);
+      return true;
+    });
+  }
+  mockFetch(t, [
+    json({ status: 'failed', error: { code: 'provider_quota', message: 'У провайдера модели закончился баланс или квота.' } }),
+    json({ detail: 'No usable analysis is available' }, 409),
+  ]);
+  await assert.rejects(analyzeDocument({ ...input, engine: 'factory', processId: 'job-123' }), error => {
+    assert.equal(error.code, 'provider_quota');
+    assert.equal(error.message, 'У провайдера модели закончился баланс или квота.');
+    return true;
+  });
+  mockFetch(t, [json({ detail: { code: 'document_rejected', message: 'Документ должен быть в кодировке UTF-8.' } }, 422)]);
+  await assert.rejects(analyzeDocument({
+    ...input, text: '', files: [new File(['# Проект'], 'task.md')], engine: 'factory',
+  }), error => error.code === 'document_rejected' && error.message === 'Документ должен быть в кодировке UTF-8.');
 });
 
 test('factory resumes existing job without uploading again and polls running', async t => {

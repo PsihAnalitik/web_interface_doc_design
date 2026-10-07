@@ -17,23 +17,25 @@ make init
 make up
 ```
 
-Один `.env` обслуживает оба решения. Нужны `API_USERS`, `OPENAI_API_KEY` и,
-если используется совместимый провайдер, `OPENAI_BASE_URL`. Ключи не попадают
-в образ или браузер. Настройки моделей независимы:
+Case Finder и фабрика используют разные учётные данные. `case-finder-main/server/.env`
+задаёт `API_USERS`, ключ и модель Case Finder (`OPENAI_API_KEY`, `OPENAI_LLM_MODEL`).
+`factory-worker` читает тот же файл, а затем `agent_factory_baseline/.env`: ключ,
+`OPENAI_BASE_URL`, `FACTORY_MODEL` и `FACTORY_VERDICT_MODEL` фабрики перекрывают
+общие значения. Ключи не попадают в образ или браузер.
 
 ```dotenv
-# Старое решение — оставьте свою прежнюю модель:
+# case-finder-main/server/.env — Case Finder:
 OPENAI_LLM_MODEL=gpt-4.1-mini
-# Фабрика:
+# agent_factory_baseline/.env — фабрика:
 FACTORY_MODEL=qwen3.7-plus
 FACTORY_VERDICT_MODEL=qwen3.7-plus
 ```
 
 Провайдер должен поддерживать выбранные модели. Фабрика передаёт reasoning `none`,
 лимит генерации 32768 и использует wiki, чек-листы и паспорт из этого репозитория.
-`agent_factory_baseline/.env` используется локальным CLI, **не Docker Compose**.
-Если общий `.env` уже существует, `make init` его не перезаписывает: при
-необходимости добавьте новые настройки в него вручную.
+Тот же `agent_factory_baseline/.env` загружает локальный CLI (`OPENAI_API_KEY`,
+`OPENAI_BASE_URL`, `BASELINE_MODEL`). Если общий `.env` уже существует, `make init`
+его не перезаписывает.
 
 Compose запускает пять сервисов: прежние `api`, `worker`, `web` и новые
 `factory-api`, `factory-worker`. Python 3.14 и снимок `workflow_ai` включены в

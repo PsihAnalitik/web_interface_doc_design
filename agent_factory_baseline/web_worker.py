@@ -14,8 +14,47 @@ from app.job_store import JobStore
 from .catalog import FIELDS
 
 logger = logging.getLogger(__name__)
-FAILURE = "Анализ не завершён. Подробности доступны администратору."
 INTERRUPTED = "Анализ прерван перезапуском сервиса; автоматический повтор отключён."
+DOCUMENT_REJECTED = (
+    "Файл должен быть текстовым Markdown без встроенных изображений и HTML-вставок. "
+    "Уберите их и загрузите файл снова."
+)
+MODEL_UNAVAILABLE = (
+    "Настроенная модель провайдера недоступна. Анализ не начат. Обратитесь к администратору."
+)
+PROVIDER_QUOTA = (
+    "У провайдера модели закончился баланс или квота. Анализ остановлен. Обратитесь к администратору."
+)
+PIPELINE_FAILED = (
+    "Анализ остановился из-за ошибки обработки. Повторите попытку. "
+    "Если она повторится, обратитесь к администратору."
+)
+INTERRUPTED_ERROR = {"code": "interrupted", "message": INTERRUPTED}
+_DOCUMENT_MARKERS = (
+    "Visual/embedded content",
+    "Only .md documents are supported",
+    "Empty document",
+    "prepare text-only Markdown",
+)
+_QUOTA_MARKERS = (
+    "PROVIDER_QUOTA",
+    "insufficient_quota",
+    "billing_not_active",
+    "billing_hard_limit_reached",
+    "Error code: 402",
+)
+
+
+def public_error(raw: str) -> dict[str, str]:
+    """User-facing failure class. Raw provider text, paths and secrets stay in the logs."""
+    text = raw or ""
+    if any(marker in text for marker in _DOCUMENT_MARKERS):
+        return {"code": "document_rejected", "message": DOCUMENT_REJECTED}
+    if "MODEL_UNAVAILABLE" in text or "model_not_found" in text:
+        return {"code": "model_unavailable", "message": MODEL_UNAVAILABLE}
+    if any(marker in text for marker in _QUOTA_MARKERS):
+        return {"code": "provider_quota", "message": PROVIDER_QUOTA}
+    return {"code": "pipeline_failed", "message": PIPELINE_FAILED}
 
 
 def project_result(result: dict, run_dir: Path) -> dict | None:
@@ -75,18 +114,21 @@ def process_job(store: JobStore, process_id: str) -> None:
         request = store.read_json(process_id, "request.json")
         documents = [directory / "input" / "original" / item["stored_name"] for item in request["files"]]
         output = directory / "run"
-        exit_code = run_factory(documents, output, directory / "worker.log")
+        log_path = directory / "worker.log"
+        exit_code = run_factory(documents, output, log_path)
+        log_text = log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
         result = json.loads((output / "result.json").read_text(encoding="utf-8")) if (output / "result.json").exists() else {}
+        notice = public_error(f"{result.get('error') or ''}\n{log_text}")
         public = project_result(result, output)
         completed = exit_code == 0 and result.get("status") == "completed" and bool(result.get("synthesis"))
         if public:
             if not completed:
-                public.update(status="partial", message=FAILURE)
+                public.update(status="partial", message=notice["message"], error=notice)
             store.write_json(process_id, "web_result.json", public)
-        store.update_status(process_id, "completed" if completed else "failed", 100, None if completed else FAILURE)
+        store.update_status(process_id, "completed" if completed else "failed", 100, None if completed else notice)
     except Exception:
         logger.exception("Factory job failed: %s", process_id)
-        store.update_status(process_id, "failed", 100, FAILURE)
+        store.update_status(process_id, "failed", 100, public_error(""))
     finally:
         store.finish(process_id)
 
@@ -97,7 +139,7 @@ def recover_interrupted(store: JobStore) -> None:
         # A crash after the terminal status write must not discard a completed result.
         state = store.read_status(process_id)
         if state["status"] not in {"completed", "failed"}:
-            store.update_status(process_id, "failed", 100, INTERRUPTED)
+            store.update_status(process_id, "failed", 100, INTERRUPTED_ERROR)
         store.finish(process_id)
 
 

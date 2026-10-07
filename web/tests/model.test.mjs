@@ -130,6 +130,8 @@ test('factory accepts zero and variable findings without the legacy quota', () =
   assert.deepEqual(result.questions[0], question);
   assert.equal(result.maturity[0].level, 'experiment');
   assert.equal(normalizeResult({ ...base, status: 'partial' }).status, 'partial');
+  const failed = normalizeResult({ ...base, status: 'partial', message: 'Баланс закончился', error: { code: 'provider_quota', message: 'Баланс закончился' } });
+  assert.deepEqual(failed.error, { code: 'provider_quota', message: 'Баланс закончился' });
 });
 
 test('factory retains valid findings but marks duplicate and malformed findings partial', () => {

@@ -1,5 +1,24 @@
 import { QUESTION_COUNT } from './model.js';
 
+const factoryErrorTitles = {
+  document_rejected: 'Документ не подходит',
+  model_unavailable: 'Модель провайдера недоступна',
+  provider_quota: 'Закончился баланс провайдера',
+  pipeline_failed: 'Ошибка анализа',
+  interrupted: 'Анализ прерван',
+};
+
+export function factoryErrorHeading(code) {
+  return factoryErrorTitles[code] || '';
+}
+
+function codedDetail(detail) {
+  if (!detail || typeof detail !== 'object' || Array.isArray(detail)) return null;
+  if (typeof detail.code !== 'string' || typeof detail.message !== 'string' || !detail.message.trim()) return null;
+  if (!Object.hasOwn(factoryErrorTitles, detail.code)) return null;
+  return detail;
+}
+
 const stages = {
   queued: 'Задание в очереди…',
   running: 'Фабрика проверяет разделы паспорта и связи между ними…',
@@ -14,6 +33,13 @@ const stages = {
 
 function apiError(response, payload) {
   const detail = payload?.detail;
+  const coded = codedDetail(detail);
+  if (coded) {
+    const error = new Error(coded.message);
+    error.code = coded.code;
+    error.status = response.status;
+    return error;
+  }
   const message = typeof detail === 'string' ? detail
     : Array.isArray(detail) ? detail.map(item => item.msg).filter(Boolean).join('; ')
       : detail?.message;
@@ -83,9 +109,20 @@ export async function analyzeDocument({ text, files, username, password, process
         throw new Error('Сервер вернул некорректный прогресс задания.');
       }
       if (factory && payload.status === 'failed') {
-        const result = await request(`/get_result/${id}`);
-        if (result.response.status !== 200) throw new Error('Сервер не вернул частичный результат.');
-        return { ...result.payload, kind: 'factory', status: 'partial' };
+        try {
+          const result = await request(`/get_result/${id}`);
+          if (result.response.status !== 200) throw new Error('Сервер не вернул частичный результат.');
+          return { ...result.payload, kind: 'factory', status: 'partial' };
+        } catch (error) {
+          const progress = codedDetail(payload.error);
+          if (!error.code && progress) {
+            const classified = new Error(progress.message);
+            classified.code = progress.code;
+            classified.status = error.status ?? 409;
+            throw classified;
+          }
+          throw error;
+        }
       }
       if (payload.status === 'failed' || payload.status === 'deletion_requested') {
         processId = null;

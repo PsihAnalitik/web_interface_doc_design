@@ -63,6 +63,8 @@ export function normalizeResult(payload) {
       summary, questions, status: payload.status === 'complete' && valid ? 'complete' : 'partial',
       maturity: (Array.isArray(payload.maturity) ? payload.maturity : []).filter(item => item && ['component', 'level', 'reason'].every(key => typeof item[key] === 'string')),
       message: typeof payload.message === 'string' ? payload.message : '',
+      error: payload.error && typeof payload.error.code === 'string' && typeof payload.error.message === 'string'
+        ? { code: payload.error.code, message: payload.error.message } : null,
     };
   }
   if (payload.kind === 'case-finder') {
