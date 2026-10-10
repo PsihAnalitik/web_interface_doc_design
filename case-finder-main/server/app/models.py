@@ -43,11 +43,32 @@ class ProgressResponse(BaseModel):
     error: ErrorDetail | None = None
 
 
+class Question(BaseModel):
+    question: str = Field(min_length=1)
+    understanding: str = Field(min_length=1)
+    importance: str = Field(min_length=1)
+
+
 class QuestionsResponse(BaseModel):
     process_id: str
     mode: QuestionMode
-    baseline: list[str] | None = None
-    enriched: list[str] | None = None
+    baseline: list[Question] | None = None
+    enriched: list[Question] | None = None
+
+
+class InputFile(BaseModel):
+    original_name: str
+    stored_name: str
+
+
+class InputResponse(BaseModel):
+    process_id: str
+    text: str
+    files: list[InputFile]
+
+
+class WhoAmIResponse(BaseModel):
+    username: str
 
 
 class PendingResponse(BaseModel):

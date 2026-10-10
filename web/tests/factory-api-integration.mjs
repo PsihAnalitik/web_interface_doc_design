@@ -41,8 +41,19 @@ test('factory adapter → proxy → real API → worker with deterministic execu
   t.after(() => new Promise(resolve => { web.close(resolve); web.closeAllConnections(); }));
   const origin = `http://127.0.0.1:${web.address().port}`;
   const realFetch = globalThis.fetch;
-  t.mock.method(globalThis, 'fetch', (url, options) => realFetch(new URL(url, origin), options));
-  const input = { engine: 'factory', username: 'fixture-user', password: 'fixture-password', text: '', files: [new File(['# Fixture\nOriginal uploaded requirement THREE'], 'task.md')] };
+  const login = await realFetch(`${origin}/api/session`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: 'fixture-user', password: 'fixture-password' }),
+  });
+  assert.equal(login.status, 200, await login.clone().text());
+  const cookie = (typeof login.headers.getSetCookie === 'function' ? login.headers.getSetCookie() : [])
+    .map(value => value.split(';')[0]).join('; ');
+  t.mock.method(globalThis, 'fetch', (url, options = {}) => {
+    const headers = new Headers(options.headers || {});
+    headers.set('cookie', cookie);
+    return realFetch(new URL(url, origin), { ...options, headers });
+  });
+  const input = { engine: 'factory', text: '', files: [new File(['# Fixture\nOriginal uploaded requirement THREE'], 'task.md')] };
   let id;
   const result = normalizeResult(await analyzeDocument({ ...input, onCreated: value => { id = value; } }));
   assert.equal(result.kind, 'factory');
@@ -67,14 +78,18 @@ test('factory adapter → proxy → real API → worker with deterministic execu
   assert.equal(partial.questions[0].evidence[0].text, 'PARTIAL requirement');
   assert.ok(partial.message);
 
-  await assert.rejects(analyzeDocument({ ...input, password: 'wrong-password' }), /Неверный логин/);
+  const wrong = await realFetch(`${origin}/api/session`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: 'fixture-user', password: 'wrong-password' }),
+  });
+  assert.equal(wrong.status, 401);
   await assert.rejects(analyzeDocument({ ...input, files: [new File(['broken'], 'broken.pdf')] }), /Markdown/);
   await assert.rejects(analyzeDocument({ ...input, files: [new File(['  '], 'empty.md')] }), error => error.code === 'document_rejected' && /непустой текст Markdown/.test(error.message));
   await assert.rejects(analyzeDocument({ ...input, files: [new File([new Uint8Array([255])], 'invalid.md')] }), error => error.code === 'document_rejected' && /UTF-8/.test(error.message));
   const body = new FormData();
   body.append('files', new File(['not markdown'], 'bypass.pdf'));
   const invalid = await realFetch(`${origin}/api/factory/start_process`, {
-    method: 'POST', headers: { Authorization: `Basic ${btoa('fixture-user:fixture-password')}` }, body,
+    method: 'POST', headers: { cookie }, body,
   });
   assert.equal(invalid.status, 422, 'server validates file type even if client preflight is bypassed');
 });

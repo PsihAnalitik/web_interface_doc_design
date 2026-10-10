@@ -8,15 +8,16 @@ ENV_FILE ?= $(SERVER_DIR)/.env
 ENV_PATH := $(abspath $(ENV_FILE))
 COMPOSE = CASE_FINDER_ENV_FILE="$(ENV_PATH)" docker compose --project-directory "$(SERVER_DIR)" --env-file "$(ENV_PATH)" -f "$(SERVER_DIR)/docker-compose.yml" -f "$(ROOT_DIR)compose.web.yaml"
 
-.PHONY: help init check-env up down status logs
+.PHONY: help init check-env up down status logs export-labels
 
 help:
 	@printf '%s\n' \
-	  'make init    — создать .env из примера (существующий файл сохраняется)' \
-	  'make up      — собрать и запустить фронтенд, API и worker' \
-	  'make down    — остановить сервисы, сохранив данные заданий' \
-	  'make status  — показать состояние сервисов' \
-	  'make logs    — показать логи (Ctrl+C завершает просмотр)'
+	  'make init          — создать .env из примера (существующий файл сохраняется)' \
+	  'make up            — собрать и запустить фронтенд, API и worker' \
+	  'make down          — остановить сервисы, сохранив данные заданий' \
+	  'make status        — показать состояние сервисов' \
+	  'make logs          — показать логи (Ctrl+C завершает просмотр)' \
+	  'make export-labels — выгрузить подтверждённую разметку и архив документов в exports/'
 
 init:
 	@if [[ -e "$(ENV_PATH)" ]]; then \
@@ -42,3 +43,13 @@ status: check-env
 
 logs: check-env
 	@$(COMPOSE) logs --follow --tail=100
+
+export-labels: check-env
+	@mkdir -p "$(ROOT_DIR)exports"
+	@$(COMPOSE) cp web:/app/data/question-events.sqlite "$(ROOT_DIR)exports/question-events.sqlite"
+	@rm -rf "$(ROOT_DIR)exports/documents"
+	@$(COMPOSE) cp api:/app/documents "$(ROOT_DIR)exports/documents"
+	@node "$(ROOT_DIR)web/scripts/export-labels.mjs" \
+	  --db "$(ROOT_DIR)exports/question-events.sqlite" \
+	  --archive "$(ROOT_DIR)exports/documents" \
+	  --out "$(ROOT_DIR)exports/labels.jsonl"

@@ -17,8 +17,8 @@ COPY server/app ./app
 COPY data/train /app/data/train
 
 RUN useradd --create-home --uid 10001 casefinder \
-    && mkdir -p /app/storage \
-    && chown -R casefinder:casefinder /app/storage
+    && mkdir -p /app/storage /app/documents \
+    && chown -R casefinder:casefinder /app/storage /app/documents
 
 USER casefinder
 

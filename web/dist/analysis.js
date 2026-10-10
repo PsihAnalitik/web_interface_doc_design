@@ -44,31 +44,25 @@ function apiError(response, payload) {
     : Array.isArray(detail) ? detail.map(item => item.msg).filter(Boolean).join('; ')
       : detail?.message;
   const error = new Error(response.status === 401
-    ? 'Неверный логин или пароль. Исправьте данные доступа и повторите попытку.'
+    ? 'Неверный логин или пароль. Войдите снова и повторите попытку.'
     : `Ошибка сервера (${response.status}). ${message || 'Повторите попытку позже.'}`);
   error.status = response.status;
   return error;
 }
 
-/** Uses the existing multipart/job API. Credentials and process ID stay in this tab. */
-export async function analyzeDocument({ text, files, username, password, processId = null, engine = 'case-finder', onCreated = () => {}, onProgress = () => {} }) {
-  if (!username || !password || username.includes(':') || !/^[\x20-\x7e]+$/.test(username + password)) {
-    const error = new Error('Введите логин и пароль сервера латинскими буквами, цифрами или символами ASCII. Логин не должен содержать двоеточие.');
-    error.processId = processId;
-    throw error;
-  }
+/** Uses the existing multipart/job API. The server session cookie authorizes every request. */
+export async function analyzeDocument({ text, files, processId = null, engine = 'case-finder', onCreated = () => {}, onProgress = () => {} }) {
   const factory = engine === 'factory';
   if (!['case-finder', 'factory'].includes(engine)) throw new Error('Неизвестный способ анализа.');
   if (factory && !processId && (text.trim() || !files.length || files.some(file => !file.name.toLowerCase().endsWith('.md')))) {
     throw new Error('Для фабрики загрузите только Markdown-файлы (.md), без текста в поле описания.');
   }
   const prefix = factory ? '/factory' : '';
-  const headers = { Authorization: `Basic ${btoa(`${username}:${password}`)}` };
   async function request(path, options = {}) {
     let response;
     try {
       response = await fetch(`/api${prefix}${path}`, {
-        ...options, headers, credentials: 'omit', cache: 'no-store', redirect: 'error',
+        ...options, credentials: 'same-origin', cache: 'no-store', redirect: 'error',
         signal: AbortSignal.timeout(120_000),
       });
     } catch (cause) {
@@ -145,6 +139,6 @@ export async function analyzeDocument({ text, files, username, password, process
   }
 }
 
-export const serviceNotice = 'Материалы отправляются на сервер Case Finder, сохраняются там и передаются в OpenAI для анализа. Сервер возвращает два набора вопросов; резюме, подсистемы и пояснения в текущем API отсутствуют. Демопример не отправляет ваши материалы.';
+export const serviceNotice = 'Материалы отправляются на сервер Case Finder, сохраняются в архиве документов и передаются в OpenAI. Вопросы показываются одним списком, без подписи набора. Демопример не отправляет ваши материалы.';
 
 export const factoryNotice = 'Фабрика принимает только Markdown-файлы (.md) по тематике LLM-ассистентов и AI-агентских систем. Материалы сохраняются на сервере и передаются настроенному провайдеру моделей. Число замечаний определяется документом; фиксированной квоты вопросов нет.';

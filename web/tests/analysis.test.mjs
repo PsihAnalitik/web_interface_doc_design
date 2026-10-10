@@ -20,7 +20,7 @@ function mockFetch(t, responses) {
   return calls;
 }
 
-test('adapter uploads original files, requests 20 Russian questions and reads both sets', async t => {
+test('adapter uploads original files, requests 10 Russian questions and reads both sets', async t => {
   const calls = mockFetch(t, [started(), done(), questions()]);
   const file = new File(['Текст документа'], 'task.md');
   const ids = [];
@@ -30,15 +30,14 @@ test('adapter uploads original files, requests 20 Russian questions and reads bo
   assert.deepEqual(calls.map(call => call.url), ['/api/start_process', '/api/get_progress/job-123', '/api/get_questions/job-123?mode=both']);
   const form = calls[0].options.body;
   assert.equal(form.get('text'), input.text);
-  assert.equal(form.get('question_count'), '20');
+  assert.equal(form.get('question_count'), '10');
   assert.equal(form.get('language'), 'Russian');
   assert.equal(form.get('files').name, 'task.md');
   assert.equal(await form.get('files').text(), 'Текст документа');
   for (const { options } of calls) {
-    assert.equal(options.headers.Authorization, `Basic ${btoa('tester:test-password')}`);
-    assert.equal(options.credentials, 'omit');
+    assert.equal(options.headers, undefined);
+    assert.equal(options.credentials, 'same-origin');
     assert.equal(options.redirect, 'error');
-    assert.equal(options.headers['Content-Type'], undefined);
   }
   assert.equal(progress.at(-1)[1], 100);
   assert.deepEqual(result, { kind: 'case-finder', baseline: ['Какие данные?'], enriched: ['Как измерить качество?'] });
@@ -95,24 +94,9 @@ test('API validation, authentication and worker errors remain errors, never demo
   }
 });
 
-test('missing credentials and unsupported characters fail before upload', async t => {
-  const calls = mockFetch(t, []);
-  for (const override of [{ password: '' }, { username: 'логин' }, { username: 'user:name' }]) {
-    await assert.rejects(analyzeDocument({ ...input, ...override }), /Введите логин/);
-  }
-  assert.equal(calls.length, 0);
-});
-
-test('correcting invalid credentials while resuming retains the known job', async t => {
+test('resuming a known job does not upload again', async t => {
   const calls = mockFetch(t, [done(), questions()]);
-  let processId = 'known-job';
-  await assert.rejects(analyzeDocument({ ...input, processId, password: 'пароль' }), error => {
-    processId = error.processId || null;
-    assert.equal(processId, 'known-job');
-    return true;
-  });
-  assert.equal(calls.length, 0);
-  await analyzeDocument({ ...input, processId });
+  await analyzeDocument({ ...input, processId: 'known-job' });
   assert.deepEqual(calls.map(call => call.url), ['/api/get_progress/known-job', '/api/get_questions/known-job?mode=both']);
 });
 

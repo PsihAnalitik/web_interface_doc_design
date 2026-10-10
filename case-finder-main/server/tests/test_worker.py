@@ -10,7 +10,14 @@ from app.worker import Worker
 class FakeOpenAI:
     def questions(self, text, question_count, language, references=None):
         prefix = "enriched" if references is not None else "baseline"
-        return [f"{prefix}-{number}-{language}" for number in range(question_count)]
+        return [
+            {
+                "question": f"{prefix}-{number}-{language}",
+                "understanding": f"{prefix}-understanding-{number}",
+                "importance": f"{prefix}-importance-{number}",
+            }
+            for number in range(question_count)
+        ]
 
     def summarize(self, text):
         return "summary"
@@ -56,6 +63,7 @@ def test_worker_generates_both_question_sets_and_retrieval_files(tmp_path: Path)
         combined_text="case",
         question_count=2,
         language="Russian",
+        username="tester",
     )
     assert store.claim_next() == process_id
     worker = Worker(
@@ -69,13 +77,20 @@ def test_worker_generates_both_question_sets_and_retrieval_files(tmp_path: Path)
 
     assert store.read_status(process_id)["status"] == "completed"
     assert store.read_json(process_id, "baseline_questions.json") == [
-        "baseline-0-Russian",
-        "baseline-1-Russian",
+        {
+            "question": "baseline-0-Russian",
+            "understanding": "baseline-understanding-0",
+            "importance": "baseline-importance-0",
+        },
+        {
+            "question": "baseline-1-Russian",
+            "understanding": "baseline-understanding-1",
+            "importance": "baseline-importance-1",
+        },
     ]
-    assert store.read_json(process_id, "enriched_questions.json") == [
-        "enriched-0-Russian",
-        "enriched-1-Russian",
-    ]
+    assert store.read_json(process_id, "enriched_questions.json")[0]["question"] == (
+        "enriched-0-Russian"
+    )
     assert store.read_json(process_id, "retrieval/relevant_cases.json") == {
         "case_ids": ["case_a"]
     }

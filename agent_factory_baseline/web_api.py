@@ -42,9 +42,14 @@ def document_rejected(message: str) -> HTTPException:
     return HTTPException(422, {"code": "document_rejected", "message": message})
 
 
+@app.get("/whoami")
+def whoami(username: Annotated[str, Depends(authenticate)]) -> dict[str, str]:
+    return {"username": username}
+
+
 @app.post("/start_process", status_code=202)
 async def start_process(
-    _: Annotated[str, Depends(authenticate)],
+    username: Annotated[str, Depends(authenticate)],
     settings: Annotated[Settings, Depends(get_settings)],
     store: Annotated[JobStore, Depends(get_store)],
     files: Annotated[list[UploadFile], File()] = [],
@@ -73,7 +78,7 @@ async def start_process(
         parsed_files.append((filename, content, parsed))
     process_id = store.create_job(text="", files=parsed_files,
                                   combined_text="\n\n".join(item[2] for item in parsed_files),
-                                  question_count=1, language="Russian")
+                                  question_count=1, language="Russian", username=username)
     return {"process_id": process_id, "status": "queued"}
 
 

@@ -8,6 +8,6 @@
     "start": "node server.mjs",
     "dev": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check dist/app.js && node --check dist/model.js && node --check dist/analysis.js && node --check dist/demo.js && node --check server.mjs && node --check tests/preview-states.mjs"
+    "check": "node --check dist/app.js && node --check dist/model.js && node --check dist/analysis.js && node --check dist/demo.js && node --check server.mjs && node --check events.mjs && node --check scripts/export-labels.mjs && node --check tests/preview-states.mjs"
   }
 }

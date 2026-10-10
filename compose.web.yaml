@@ -17,6 +17,9 @@ services:
       PORT: "4173"
       API_URL: http://api:8000
       FACTORY_API_URL: http://factory-api:8002
+      QUESTION_EVENTS_DB: /app/data/question-events.sqlite
+    volumes:
+      - web_data:/app/data
     ports:
       - "127.0.0.1:${WEB_PORT:-4173}:4173"
     depends_on:
@@ -64,3 +67,4 @@ services:
 
 volumes:
   factory_storage:
+  web_data:

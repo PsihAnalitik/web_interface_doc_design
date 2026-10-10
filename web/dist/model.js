@@ -1,5 +1,5 @@
 export const MAX_FILE_SIZE = 30 * 1024 * 1024;
-export const QUESTION_COUNT = 20;
+export const QUESTION_COUNT = 10;
 export const QUESTION_GROUPS = {
   baseline: 'По вашим материалам',
   enriched: 'С учётом похожих кейсов',
@@ -73,9 +73,15 @@ export function normalizeResult(payload) {
     for (const group of Object.keys(QUESTION_GROUPS)) {
       const items = payload[group];
       if (!Array.isArray(items) || items.length !== QUESTION_COUNT) complete = false;
-      for (const [index, text] of (Array.isArray(items) ? items : []).entries()) {
-        if (typeof text !== 'string' || !text.trim()) { complete = false; continue; }
-        questions.push({ id: `${group}-${index + 1}`, group, text, subsystem: '', understanding: '', importance: '' });
+      for (const [index, item] of (Array.isArray(items) ? items : []).entries()) {
+        const text = typeof item === 'string' ? item : item?.question || item?.text;
+        const understanding = typeof item === 'object' && item && typeof item.understanding === 'string' ? item.understanding.trim() : '';
+        const importance = typeof item === 'object' && item && typeof item.importance === 'string' ? item.importance.trim() : '';
+        if (typeof text !== 'string' || !text.trim() || !understanding || !importance) complete = false;
+        if (typeof text !== 'string' || !text.trim()) continue;
+        questions.push({
+          id: `${group}-${index + 1}`, group, text: text.trim(), subsystem: '', understanding, importance,
+        });
       }
     }
     if (!questions.length) throw new Error('В ответе нет доступных вопросов. Повторите обработку.');
@@ -117,7 +123,11 @@ export function normalizeResult(payload) {
 
 export function selectedText(questions, selected) {
   return questions.filter(question => selected.has(question.id))
-    .map((question, index) => `${index + 1}. ${question.text}${question.group ? `\nНабор: ${QUESTION_GROUPS[question.group]}` : ''}\nТекущее понимание: ${question.understanding || (question.group ? 'Не предоставляется текущим API.' : 'Не получено от сервиса.')}`)
+    .map((question, index) => [
+      `${index + 1}. ${question.text}`,
+      `Текущее понимание: ${question.understanding || 'Не получено от сервиса.'}`,
+      `Почему это важно: ${question.importance || 'Не получено от сервиса.'}`,
+    ].join('\n'))
     .join('\n\n');
 }
 

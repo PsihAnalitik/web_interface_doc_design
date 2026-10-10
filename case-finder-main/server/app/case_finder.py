@@ -22,6 +22,29 @@ from .prompts import (
 )
 
 
+def normalize_questions(raw_questions: list, question_count: int) -> list[dict[str, str]]:
+    if len(raw_questions) != question_count:
+        raise ValueError(
+            f"OpenAI must return exactly {question_count} non-empty question objects"
+        )
+    normalized = []
+    for item in raw_questions:
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"OpenAI must return exactly {question_count} non-empty question objects"
+            )
+        record = {}
+        for key in ("question", "understanding", "importance"):
+            value = item.get(key)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(
+                    f"OpenAI must return exactly {question_count} non-empty question objects"
+                )
+            record[key] = value.strip()
+        normalized.append(record)
+    return normalized
+
+
 def parse_json_array(raw_text: str) -> list:
     text = raw_text.strip()
     fenced = re.fullmatch(
@@ -84,7 +107,7 @@ class OpenAIService:
         question_count: int,
         language: str,
         references: str | None = None,
-    ) -> list[str]:
+    ) -> list[dict[str, str]]:
         if references is None:
             system = QUESTION_SYSTEM_TEMPLATE.format(
                 question_count=question_count, language=language
@@ -97,14 +120,7 @@ class OpenAIService:
             user = ENRICHED_QUESTION_USER_TEMPLATE.format(
                 case_text=text, reference_cases=references
             )
-        questions = self._array(system, user)
-        if len(questions) != question_count or not all(
-            isinstance(question, str) and question.strip() for question in questions
-        ):
-            raise ValueError(
-                f"OpenAI must return exactly {question_count} non-empty question strings"
-            )
-        return [question.strip() for question in questions]
+        return normalize_questions(self._array(system, user), question_count)
 
     def relevant_positions(
         self, summary: str, candidates: list[Candidate]

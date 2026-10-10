@@ -4,11 +4,35 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from app.case_finder import CaseRepository, parse_json_array
+from app.case_finder import CaseRepository, normalize_questions, parse_json_array
 
 
 def test_parse_json_array_accepts_json_fence():
     assert parse_json_array('```json\n["question"]\n```') == ["question"]
+
+
+def test_normalize_questions_requires_three_fields():
+    raw = [
+        {
+            "question": " Какие данные? ",
+            "understanding": " Не указано. ",
+            "importance": " Без них нельзя оценить решение. ",
+        }
+    ]
+    assert normalize_questions(raw, 1) == [
+        {
+            "question": "Какие данные?",
+            "understanding": "Не указано.",
+            "importance": "Без них нельзя оценить решение.",
+        }
+    ]
+    with pytest.raises(ValueError, match="question objects"):
+        normalize_questions(["Какие данные?"], 1)
+    with pytest.raises(ValueError, match="question objects"):
+        normalize_questions(
+            [{"question": "Какие данные?", "understanding": " ", "importance": "Важно."}],
+            1,
+        )
 
 
 def test_parse_json_array_rejects_object():

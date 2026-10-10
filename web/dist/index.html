@@ -15,7 +15,24 @@
   <header class="site-header">
     <div class="header-inner">
       <a class="brand" href="./" aria-label="AI Solution Copilot — новая проверка"><span class="brand-mark" aria-hidden="true">↗</span><span>AI Solution <strong>Copilot</strong></span></a>
-      <span class="test-badge"><span aria-hidden="true">◌</span> Тестовый режим</span>
+      <div class="header-tools">
+        <span class="test-badge"><span aria-hidden="true">◌</span> Тестовый режим</span>
+        <div class="account">
+          <button id="login-toggle" class="button quiet" type="button">Войти</button>
+          <form id="login-form" class="login-popover" hidden>
+            <label class="field-label" for="api-username">Логин</label>
+            <input id="api-username" name="username" autocomplete="username" required>
+            <label class="field-label" for="api-password">Пароль</label>
+            <input id="api-password" name="password" type="password" autocomplete="current-password" required>
+            <button class="button primary" type="submit">Войти</button>
+            <p id="login-error" class="small" role="alert" hidden></p>
+          </form>
+          <div id="account-bar" hidden>
+            <span id="account-name"></span>
+            <button id="logout" class="button quiet" type="button">Выйти</button>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
   <main id="main" class="container">
@@ -25,17 +42,12 @@
       <span id="step-results"><b>03</b> Вопросы</span>
     </nav>
 
-    <form id="credentials-form" class="access-panel" aria-label="Доступ к серверу анализа">
-      <div><label class="field-label" for="api-username">Логин сервера</label><input id="api-username" name="username" autocomplete="username" required></div>
-      <div><label class="field-label" for="api-password">Пароль</label><input id="api-password" name="password" type="password" autocomplete="current-password" required></div>
-      <p class="small muted">Данные доступа выдаёт администратор сервера. Для демопримера они не нужны. Приложение не сохраняет пароль.</p>
-    </form>
     <section id="input-screen" aria-labelledby="input-title">
-      <div class="intro"><p class="eyebrow">АНАЛИЗ ТЕХНИЧЕСКОГО ЗАДАНИЯ</p><h1 id="input-title">Уточните требования<br>до начала разработки</h1><p id="engine-description" class="lead">Добавьте описание задачи или документы, чтобы получить два набора по 20 вопросов: по вашим материалам и с учётом похожих кейсов.</p></div>
+      <div class="intro"><p class="eyebrow">АНАЛИЗ ТЕХНИЧЕСКОГО ЗАДАНИЯ</p><h1 id="input-title">Уточните требования<br>до начала разработки</h1><p id="engine-description" class="lead">Добавьте описание задачи или документы. Отметьте звёздочками важные вопросы и подтвердите разметку.</p></div>
       <div class="notice"><span class="notice-icon" aria-hidden="true">!</span><div><strong>Перед загрузкой</strong><p>Сервис работает в тестовом режиме. Не загружайте конфиденциальные документы.</p></div></div>
       <form id="analysis-form">
         <label class="field-label" for="engine">Способ анализа</label>
-        <select id="engine" name="engine"><option value="case-finder">Case Finder — вопросы без аналогов и с аналогами</option><option value="factory">Агентская фабрика — разделы паспорта и их связи</option></select>
+        <select id="engine" name="engine"><option value="case-finder">Case Finder — уточняющие вопросы</option><option value="factory">Агентская фабрика — разделы паспорта и их связи</option></select>
         <p id="factory-scope" class="notice" hidden>Фабрика предназначена только для документов по тематике AI-агентов: LLM-ассистентов и агентских систем. Другие ИИ-домены не входят в её экспертизу. Вход — только Markdown (.md).</p>
         <p id="factory-design-document" class="small" hidden><a href="/document_design.md" download="AI-Solution-Copilot.md">Скачать дизайн-документ проекта (.md)</a> — описание ограничений и методики; его можно загрузить для пробного анализа.</p>
         <label class="field-label" for="description">Что нужно разработать? <span>необязательно, если есть файлы</span></label>
@@ -58,6 +70,11 @@
       <div class="result-heading"><div><p class="eyebrow">РЕЗУЛЬТАТ АНАЛИЗА</p><h1 id="analysis-title">Анализ технического задания</h1></div><span id="status-badge" class="status-badge" role="status"></span></div>
       <div class="source-line"><span id="source-label"></span><span id="demo-label" class="demo-badge" hidden>Демонстрационный пример</span></div>
       <div id="progress-panel" class="progress-panel" hidden><h2 id="progress-title">Готовим вопросы к проекту</h2><p id="progress-description">Изучаем материалы и готовим уточняющие вопросы.</p><progress id="analysis-progress" max="100" aria-label="Ход анализа"></progress></div>
+      <details id="tz-panel" class="tz-panel" hidden>
+        <summary>Техническое задание</summary>
+        <p id="tz-files" class="small muted"></p>
+        <pre id="tz-text" class="tz-text"></pre>
+      </details>
       <div id="analysis-error" class="error-panel" role="alert" hidden><strong id="error-title"></strong><p id="error-message"></p></div>
       <div id="run-actions" class="run-actions"><button id="retry" class="button" hidden>Повторить обработку</button><button id="revise" class="button" hidden>Загрузить исправленное ТЗ</button><a class="button new-analysis" href="./" target="_blank" rel="noopener noreferrer">Проанализировать другое ТЗ <span aria-hidden="true">↗</span></a></div>
       <section id="summary-section" class="summary" aria-labelledby="summary-title" hidden><h2 id="summary-title">Как мы поняли задачу</h2><div id="summary-text"></div></section>
@@ -68,11 +85,13 @@
         <div class="selection-bar">
           <strong id="selection-count" role="status">Выбрано: 0</strong>
           <div class="selection-actions"><button id="select-all" class="button quiet">Выделить все вопросы</button><button id="clear" class="button quiet" disabled>Снять выделение</button></div>
+          <button id="confirm" class="button primary" type="button" disabled>Подтвердить</button>
           <button class="button primary copy" disabled>Копировать выбранные вопросы</button>
           <a class="button new-analysis" href="./" target="_blank" rel="noopener noreferrer">Проанализировать другое ТЗ <span aria-hidden="true">↗</span></a>
         </div>
         <table class="questions-table"><caption class="sr-only">Уточняющие вопросы и доступные пояснения</caption><thead><tr><th scope="col"><span class="sr-only">Выбор вопроса</span></th><th id="question-column" scope="col">Вопрос / подсистема</th><th scope="col">Текущее понимание</th><th scope="col">Почему это важно</th></tr></thead><tbody id="questions"></tbody></table>
-        <div class="bottom-actions"><span class="muted small">Исправьте ТЗ в своём редакторе и загрузите новую версию.</span><button class="button primary copy" disabled>Копировать выбранные вопросы</button></div>
+        <div class="bottom-actions"><span class="muted small">Исправьте ТЗ в своём редакторе и загрузите новую версию.</span><button id="confirm-bottom" class="button primary" type="button" disabled>Подтвердить</button><button class="button primary copy" disabled>Копировать выбранные вопросы</button></div>
+        <p id="confirm-message" class="confirm-message" role="status"></p>
       </section>
       <div id="copy-message" class="copy-message" role="status"></div>
       <div id="copy-fallback" class="manual-copy" hidden><label for="copy-text" class="field-label">Текст для ручного копирования</label><textarea id="copy-text" rows="8" readonly></textarea><p class="small muted">Выделите текст и нажмите Ctrl+C или ⌘C.</p></div>

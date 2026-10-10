@@ -15,8 +15,11 @@ Given a proposed use case, identify the most important missing information its a
 before the team can assess feasibility and design a solution. Ask exactly {question_count} precise,
 non-overlapping questions. Prioritize business goals and success metrics, users and workflow, data
 and labels, baselines, constraints, risks, evaluation, deployment, monitoring, privacy, security,
-and operations where relevant. Do not assume missing facts. Write every question in {language}.
-Return only a JSON array of question strings."""
+and operations where relevant. Do not assume missing facts. Write every field in {language}.
+Return only a JSON array of exactly {question_count} objects. Each object has three non-empty
+string fields and no others: "question" (one precise clarification question), "understanding"
+(one sentence on what the use case already says about this topic, or that it is not stated),
+and "importance" (one sentence on why the missing information matters for feasibility or design)."""
 
 QUESTION_USER_TEMPLATE = """Create clarification questions using only this use case:
 
@@ -46,7 +49,11 @@ The reference cases are examples, not ground truth about the target. Use them on
 potentially important details, tradeoffs, risks, metrics, data requirements, and operational
 constraints. Phrase every question for the target author, never ask about a reference, and never
 imply that a reference detail applies to the target. Avoid duplicate and speculative questions.
-Write every question in {language}. Return only a JSON array of question strings."""
+Write every field in {language}. Return only a JSON array of exactly {question_count} objects.
+Each object has three non-empty string fields and no others: "question" (one precise clarification
+question for the target author), "understanding" (one sentence on what the target use case already
+says about this topic, or that it is not stated), and "importance" (one sentence on why the missing
+information matters for feasibility or design)."""
 
 ENRICHED_QUESTION_USER_TEMPLATE = """Target use case:
 <target_use_case>

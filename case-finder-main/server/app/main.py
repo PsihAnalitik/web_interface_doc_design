@@ -24,16 +24,18 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from .config import Settings
 from .document_parser import DocumentParseError, parse_document
-from .job_store import JobNotFoundError, JobStore
+from .job_store import ArchiveError, JobNotFoundError, JobStore
 from .logging_config import configure_logging
 from .models import (
     DeleteResponse,
+    InputResponse,
     JobStatus,
     PendingResponse,
     ProgressResponse,
     QuestionMode,
     QuestionsResponse,
     UploadResponse,
+    WhoAmIResponse,
 )
 
 configure_logging()
@@ -47,7 +49,17 @@ def get_settings() -> Settings:
 
 
 def get_store(settings: Annotated[Settings, Depends(get_settings)]) -> JobStore:
-    return JobStore(settings.storage_path)
+    return JobStore(settings.storage_path, settings.documents_archive_path)
+
+
+def require_owner(process_id: str, username: str, store: JobStore) -> dict:
+    try:
+        request = store.read_json(process_id, "request.json")
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Process not found") from exc
+    if request.get("username") != username:
+        raise HTTPException(status_code=404, detail="Process not found")
+    return request
 
 
 def authenticate(
@@ -109,7 +121,7 @@ async def request_logging(request: Request, call_next):
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def start_process(
-    _: Annotated[str, Depends(authenticate)],
+    username: Annotated[str, Depends(authenticate)],
     settings: Annotated[Settings, Depends(get_settings)],
     store: Annotated[JobStore, Depends(get_store)],
     text: Annotated[str, Form()] = "",
@@ -171,26 +183,62 @@ async def start_process(
             detail="The request must contain non-empty text or a file with extractable text",
         )
 
-    process_id = store.create_job(
-        text=text,
-        files=parsed_files,
-        combined_text="\n\n".join(sections),
-        question_count=question_count,
-        language=language,
-    )
+    try:
+        process_id = store.create_job(
+            text=text,
+            files=parsed_files,
+            combined_text="\n\n".join(sections),
+            question_count=question_count,
+            language=language,
+            username=username,
+        )
+    except ArchiveError as exc:
+        logger.exception(
+            "documents_archive_failed", extra={"process_id": exc.process_id}
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Не удалось сохранить документы в архив. Обратитесь к администратору.",
+        ) from exc
     return UploadResponse(process_id=process_id, status=JobStatus.queued)
 
 
 @app.get("/get_progress/{process_id}", response_model=ProgressResponse)
 def get_progress(
     process_id: str,
-    _: Annotated[str, Depends(authenticate)],
+    username: Annotated[str, Depends(authenticate)],
     store: Annotated[JobStore, Depends(get_store)],
 ) -> ProgressResponse:
+    require_owner(process_id, username, store)
     try:
         return ProgressResponse.model_validate(store.read_status(process_id))
     except JobNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Process not found") from exc
+
+
+@app.get("/whoami", response_model=WhoAmIResponse)
+def whoami(username: Annotated[str, Depends(authenticate)]) -> WhoAmIResponse:
+    return WhoAmIResponse(username=username)
+
+
+@app.get("/get_input/{process_id}", response_model=InputResponse)
+def get_input(
+    process_id: str,
+    username: Annotated[str, Depends(authenticate)],
+    store: Annotated[JobStore, Depends(get_store)],
+) -> InputResponse:
+    request = require_owner(process_id, username, store)
+    try:
+        text = (store.job_dir(process_id) / "input" / "combined.txt").read_text(
+            encoding="utf-8"
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Process not found") from exc
+    return InputResponse(
+        process_id=process_id,
+        text=text,
+        files=request.get("files") or [],
+    )
 
 
 @app.get(
@@ -200,10 +248,11 @@ def get_progress(
 )
 def get_questions(
     process_id: str,
-    _: Annotated[str, Depends(authenticate)],
+    username: Annotated[str, Depends(authenticate)],
     store: Annotated[JobStore, Depends(get_store)],
     mode: QuestionMode = QuestionMode.both,
 ):
+    require_owner(process_id, username, store)
     try:
         job_status = store.read_status(process_id)
         if job_status["status"] == "failed":
@@ -237,9 +286,10 @@ def get_questions(
 @app.delete("/delete_job/{process_id}", response_model=DeleteResponse)
 def delete_job(
     process_id: str,
-    _: Annotated[str, Depends(authenticate)],
+    username: Annotated[str, Depends(authenticate)],
     store: Annotated[JobStore, Depends(get_store)],
 ) -> DeleteResponse:
+    require_owner(process_id, username, store)
     try:
         result = store.delete(process_id)
         return DeleteResponse(process_id=process_id, status=result)

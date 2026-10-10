@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import logging
 import os
 import shutil
 import uuid
@@ -8,19 +10,32 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+logger = logging.getLogger(__name__)
+_warned_archives: set[str] = set()
+
 
 class JobNotFoundError(FileNotFoundError):
     pass
 
 
+class ArchiveError(Exception):
+    def __init__(self, process_id: str):
+        self.process_id = process_id
+        super().__init__(f"Failed to archive documents for {process_id}")
+
+
 class JobStore:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, archive_path: Path | None = None):
         self.root = root
+        self.archive_path = archive_path
         self.jobs_dir = root / "jobs"
         self.pending_dir = root / "queue" / "pending"
         self.running_dir = root / "queue" / "running"
         for directory in (self.jobs_dir, self.pending_dir, self.running_dir):
             directory.mkdir(parents=True, exist_ok=True)
+        if archive_path is not None:
+            archive_path.mkdir(parents=True, exist_ok=True)
+            _warn_if_archive_not_writable(archive_path)
 
     @staticmethod
     def validate_id(process_id: str) -> str:
@@ -40,6 +55,7 @@ class JobStore:
         combined_text: str,
         question_count: int,
         language: str,
+        username: str,
     ) -> str:
         process_id = str(uuid.uuid4())
         job_dir = self.job_dir(process_id)
@@ -73,6 +89,7 @@ class JobStore:
                 "files": metadata,
                 "question_count": question_count,
                 "language": language,
+                "username": username,
             },
         )
         now = _utc_now()
@@ -87,10 +104,54 @@ class JobStore:
                 "error": None,
             },
         )
+        try:
+            self._archive_documents(
+                process_id,
+                username=username,
+                text=text,
+                files=files,
+                metadata=metadata,
+                combined_text=combined_text,
+            )
+        except Exception as exc:
+            shutil.rmtree(job_dir, ignore_errors=True)
+            if self.archive_path is not None:
+                shutil.rmtree(self.archive_path / process_id, ignore_errors=True)
+            raise ArchiveError(process_id) from exc
         self._atomic_json(
             self.pending_dir / f"{process_id}.json", {"process_id": process_id}
         )
         return process_id
+
+    def _archive_documents(
+        self,
+        process_id: str,
+        *,
+        username: str,
+        text: str,
+        files: list[tuple[str, bytes, str]],
+        metadata: list[dict[str, Any]],
+        combined_text: str,
+    ) -> None:
+        if self.archive_path is None:
+            return
+        destination = self.archive_path / process_id
+        shutil.copytree(self.job_dir(process_id) / "input", destination / "input")
+        archived_files = []
+        for item, (_, content, _) in zip(metadata, files, strict=True):
+            archived_files.append(
+                {**item, "sha256": hashlib.sha256(content).hexdigest()}
+            )
+        self._atomic_json(
+            destination / "meta.json",
+            {
+                "username": username,
+                "process_id": process_id,
+                "created_at": _utc_now(),
+                "text_supplied": bool(text.strip()),
+                "files": archived_files,
+            },
+        )
 
     def read_status(self, process_id: str) -> dict[str, Any]:
         path = self.job_dir(process_id) / "status.json"
@@ -185,3 +246,11 @@ class JobStore:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _warn_if_archive_not_writable(archive_path: Path) -> None:
+    key = str(archive_path)
+    if key in _warned_archives or os.access(archive_path, os.W_OK):
+        return
+    _warned_archives.add(key)
+    logger.error("documents_archive_not_writable", extra={"path": key})

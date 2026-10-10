@@ -21,6 +21,7 @@ class Settings:
     max_total_upload_bytes: int
     max_question_count: int
     openai_timeout_seconds: float
+    documents_archive_path: Path | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -66,7 +67,13 @@ class Settings:
             * 1024,
             max_question_count=_positive_int("MAX_QUESTION_COUNT", 50),
             openai_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT_SECONDS", "120")),
+            documents_archive_path=_optional_path("DOCUMENTS_ARCHIVE_PATH"),
         )
+
+
+def _optional_path(name: str) -> Path | None:
+    value = os.getenv(name, "").strip()
+    return Path(value) if value else None
 
 
 def _positive_int(name: str, default: int) -> int:
